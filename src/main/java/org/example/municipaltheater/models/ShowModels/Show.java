@@ -3,6 +3,7 @@ package org.example.municipaltheater.models.ShowModels;
 import java.util.Date;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 import org.example.municipaltheater.models.DifferentUsers.RegisteredUser;
 import org.springframework.data.annotation.Id;
@@ -12,53 +13,54 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
+@NoArgsConstructor
 @AllArgsConstructor
 @ToString
 @Document(collection = "Shows")
 
 public class Show {
     @Id
-    private String ShowID;
+    private String showID;
     @NotBlank(message = "Show name is required.")
-    private String ShowName;
+    private String showName;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
     @NotNull(message = "Show date is required.")
-    private Date ShowDate;
-    private String ShowDescription;
+    private Date showDate;
+    @NotBlank(message = "Show description is required.")
+    private String showDescription;
     @DBRef(lazy = true)
     private List<RegisteredUser> BookedAudience;
 
-    public Show () {}
-
     public String getShowID() {
-        return ShowID;
+        return showID;
     }
 
     public void setShowID(String showID) {
-        ShowID = showID;
+        this.showID = showID;
     }
 
     public String getShowName() {
-        return ShowName;
+        return showName;
     }
 
     public void setShowName(String showName) {
-        ShowName = showName;
+        this.showName = showName;
     }
 
     public Date getShowDate() {
-        return ShowDate;
+        return showDate;
     }
 
     public void setShowDate(Date showDate) {
-        ShowDate = showDate;
+        this.showDate = showDate;
     }
 
     public String getShowDescription() {
-        return ShowDescription;
+        return showDescription;
     }
 
     public void setShowDescription(String showDescription) {
-        ShowDescription = showDescription;
+        this.showDescription = showDescription;
     }
 
     public List<RegisteredUser> getBookedAudience() {

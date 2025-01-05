@@ -1,5 +1,6 @@
 package org.example.municipaltheater.models.ShowModels;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import javax.validation.constraints.NotBlank;
@@ -17,33 +18,33 @@ import java.util.Date;
 public class ShowUpdateDTO {
 
     @NotBlank(message = "Show name is required.")
-    private String ShowName;
+    private String showName;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
     @NotNull(message = "Show date is required.")
-    private Date ShowDate;
-    private String ShowDescription;
+    private Date showDate;
+    private String showDescription;
 
     public String getShowName() {
-        return ShowName;
+        return showName;
     }
 
     public void setShowName(String showName) {
-        ShowName = showName;
+        this.showName = showName;
     }
 
     public Date getShowDate() {
-        return ShowDate;
+        return showDate;
     }
 
     public void setShowDate(Date showDate) {
-        ShowDate = showDate;
+        this.showDate = showDate;
     }
 
     public String getShowDescription() {
-        return ShowDescription;
+        return showDescription;
     }
 
     public void setShowDescription(String showDescription) {
-        ShowDescription = showDescription;
+        this.showDescription = showDescription;
     }
-
 }
