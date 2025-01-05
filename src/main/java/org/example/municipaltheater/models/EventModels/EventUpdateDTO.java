@@ -1,7 +1,4 @@
-package org.example.municipaltheater.models.EventsAndShows;
-
-import lombok.Getter;
-import lombok.Setter;
+package org.example.municipaltheater.models.EventModels;
 
 import java.util.Date;
 

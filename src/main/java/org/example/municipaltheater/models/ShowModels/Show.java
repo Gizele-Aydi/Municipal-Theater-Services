@@ -1,4 +1,4 @@
-package org.example.municipaltheater.models.EventsAndShows;
+package org.example.municipaltheater.models.ShowModels;
 
 import java.util.Date;
 import java.util.List;

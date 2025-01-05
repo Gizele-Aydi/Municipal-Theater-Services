@@ -1,7 +1,7 @@
 package org.example.municipaltheater.models.DifferentUsers;
 
-import org.example.municipaltheater.models.EventsAndShows.Event;
-import org.example.municipaltheater.models.EventsAndShows.Show;
+import org.example.municipaltheater.models.EventModels.Event;
+import org.example.municipaltheater.models.ShowModels.Show;
 
 
 public class Visitor {
