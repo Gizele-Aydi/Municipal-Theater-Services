@@ -1,13 +1,18 @@
 package org.example.municipaltheater.models.ShowModels;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.mongodb.internal.connection.Time;
+import org.example.municipaltheater.models.DifferentUsers.RegisteredUser;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import lombok.*;
 
+import java.time.LocalTime;
 import java.util.Date;
+import java.util.List;
 
 
 @NoArgsConstructor
@@ -22,7 +27,11 @@ public class ShowUpdateDTO {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
     @NotNull(message = "Show date is required.")
     private Date showDate;
-    private String showDescription;
+    @NotBlank(message = "Show duration is required.")
+    private String showDuration;
+    @NotNull(message = "Show starting time is required.")
+    private LocalTime showStartTime;
+    private String showPhotoURL;
 
     public String getShowName() {
         return showName;
@@ -40,11 +49,27 @@ public class ShowUpdateDTO {
         this.showDate = showDate;
     }
 
-    public String getShowDescription() {
-        return showDescription;
+    public String getShowDuration() {
+        return showDuration;
     }
 
-    public void setShowDescription(String showDescription) {
-        this.showDescription = showDescription;
+    public void setShowDuration(String showDuration) {
+        this.showDuration = showDuration;
+    }
+
+    public LocalTime getShowStartTime() {
+        return showStartTime;
+    }
+
+    public void setShowStartTime(LocalTime showStartTime) {
+        this.showStartTime = showStartTime;
+    }
+
+    public String getShowPhotoURL() {
+        return showPhotoURL;
+    }
+
+    public void setShowPhotoURL(String showPhotoURL) {
+        this.showPhotoURL = showPhotoURL;
     }
 }

@@ -1,17 +1,21 @@
 package org.example.municipaltheater.models.ShowModels;
 
-import java.util.Date;
-import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.*;
-import org.example.municipaltheater.models.DifferentUsers.RegisteredUser;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.mongodb.internal.connection.Time;
+import lombok.*;
+
+import org.example.municipaltheater.models.DifferentUsers.RegisteredUser;
+
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+
+import java.time.LocalTime;
+import java.util.Date;
+import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -26,8 +30,12 @@ public class Show {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
     @NotNull(message = "Show date is required.")
     private Date showDate;
-    @NotBlank(message = "Show description is required.")
-    private String showDescription;
+    @NotBlank(message = "Show duration is required.")
+    private String showDuration;
+    @NotNull(message = "Show starting time is required.")
+    private LocalTime showStartTime;
+    @NotBlank(message = "Show photo is required.")
+    private String showPhotoURL;
     @DBRef(lazy = true)
     private List<RegisteredUser> BookedAudience;
 
@@ -55,12 +63,28 @@ public class Show {
         this.showDate = showDate;
     }
 
-    public String getShowDescription() {
-        return showDescription;
+    public String getShowDuration() {
+        return showDuration;
     }
 
-    public void setShowDescription(String showDescription) {
-        this.showDescription = showDescription;
+    public void setShowDuration(String showDuration) {
+        this.showDuration = showDuration;
+    }
+
+    public LocalTime getShowStartTime() {
+        return showStartTime;
+    }
+
+    public void setShowStartTime(LocalTime showStartTime) {
+        this.showStartTime = showStartTime;
+    }
+
+    public String getShowPhotoURL() {
+        return showPhotoURL;
+    }
+
+    public void setShowPhotoURL(String showPhotoURL) {
+        this.showPhotoURL = showPhotoURL;
     }
 
     public List<RegisteredUser> getBookedAudience() {

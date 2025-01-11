@@ -11,7 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/Shows")
@@ -35,8 +37,12 @@ public class ShowsController {
     }
 
     @GetMapping(value = "/{id}")
-    public ResponseEntity<APIResponse<Show>> GetShow(@PathVariable String id) {
-        return ShowService.findShowByID(id).map(show -> ResponseGenerator.Response(HttpStatus.OK, "Show found.", show))
+    public ResponseEntity<APIResponse<ShowUpdateDTO>> GetShow(@PathVariable String id) {
+        return ShowService.findShowByID(id)
+                .map(show -> {
+                    ShowUpdateDTO showDTO = showMapper.ShowToShowUpdateDTO(show);
+                    return ResponseGenerator.Response(HttpStatus.OK, "Show found.", showDTO);
+                })
                 .orElseGet(() -> ResponseGenerator.Response(HttpStatus.NOT_FOUND, "This show wasn't found, ID: " + id, null));
     }
 
@@ -56,7 +62,10 @@ public class ShowsController {
     @PutMapping("/Update/{id}")
     public ResponseEntity<APIResponse<Show>> UpdateShow(@PathVariable String id, @RequestBody ShowUpdateDTO showUpdateDTO) {
         try {
-            Show show = showMapper.ShowUpdateDTOToShow(showUpdateDTO);
+            Show show = ShowService.findShowByID(id).orElseThrow(() ->
+                    new DefinedExceptions.ONotFoundException("This show wasn't found, ID: " + id));
+
+            showMapper.updateShowFromDTO(showUpdateDTO, show);
             Show updatedShow = ShowService.updateShow(id, show);
             return ResponseGenerator.Response(HttpStatus.OK, "The Show was updated successfully.", updatedShow);
         } catch (DefinedExceptions.ONotFoundException e) {
@@ -78,5 +87,15 @@ public class ShowsController {
         } catch (Exception e) {
             return ResponseGenerator.Response(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred: " + e.getMessage(), null);
         }
+    }
+
+    @PostMapping("/Search")
+    public ResponseEntity<?> searchShows(@RequestBody Map<String, String> request) {
+        String query = request.get("searchQuery");
+        List<Show> matchingShows = ShowService.searchShows(query);
+        if (matchingShows == null) {
+            matchingShows = new ArrayList<>();
+        }
+        return ResponseEntity.ok(new SearchQuery(matchingShows));
     }
 }

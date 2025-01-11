@@ -2,6 +2,7 @@ package org.example.municipaltheater.controllers;
 
 import org.example.municipaltheater.models.APIResponse;
 import org.example.municipaltheater.models.EventModels.*;
+import org.example.municipaltheater.models.EventModels.SearchQuery;
 import org.example.municipaltheater.services.EventsAndShowsServices.EventsService;
 import org.example.municipaltheater.utils.DefinedExceptions;
 import org.example.municipaltheater.utils.ResponseGenerator;
@@ -14,7 +15,9 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @Validated
@@ -32,16 +35,19 @@ public class EventsController {
     public ResponseEntity<APIResponse<List<Event>>> GetAllEvents() {
         List<Event> events = eventService.findAllEvents();
         if (events.isEmpty()) {
-            return ResponseGenerator.Response(HttpStatus.OK,"The Events list is empty. ", null);
+            return ResponseGenerator.Response(HttpStatus.OK, "The Events list is empty.", null);
         } else {
-            return ResponseGenerator.Response(HttpStatus.OK, "Events retrieved successfully. ", events);
+            return ResponseGenerator.Response(HttpStatus.OK, "Events retrieved successfully.", events);
         }
     }
 
     @GetMapping(value = "/{id}")
-    public ResponseEntity<APIResponse<Event>> GetEvent(@PathVariable String id) {
+    public ResponseEntity<APIResponse<EventUpdateDTO>> GetEvent(@PathVariable String id) {
         return eventService.findEventByID(id)
-                .map(event -> ResponseGenerator.Response(HttpStatus.OK, "Event found. ", event))
+                .map(event -> {
+                    EventUpdateDTO eventDTO = eventMapper.EventToEventUpdateDTO(event);
+                    return ResponseGenerator.Response(HttpStatus.OK, "Event found.", eventDTO);
+                })
                 .orElseGet(() -> ResponseGenerator.Response(HttpStatus.NOT_FOUND, "This event wasn't found, ID: " + id, null));
     }
 
@@ -50,7 +56,7 @@ public class EventsController {
         try {
             Event event = eventMapper.EventUpdateDTOToEvent(eventUpdateDTO);
             Event addedEvent = eventService.saveEvent(event);
-            return ResponseGenerator.Response(HttpStatus.CREATED, "Event added successfully. ", addedEvent);
+            return ResponseGenerator.Response(HttpStatus.CREATED, "Event added successfully.", addedEvent);
         } catch (DefinedExceptions.OAlreadyExistsException e) {
             return ResponseGenerator.Response(HttpStatus.BAD_REQUEST, e.getMessage(), null);
         } catch (Exception e) {
@@ -61,9 +67,8 @@ public class EventsController {
     @PutMapping("/Update/{id}")
     public ResponseEntity<APIResponse<Event>> UpdateEvent(@PathVariable String id, @RequestBody @Valid EventUpdateDTO eventUpdateDTO) {
         try {
-            Event updatedEvent = eventMapper.EventUpdateDTOToEvent(eventUpdateDTO);
-            Event event = eventService.updateEvent(id, updatedEvent);
-            return ResponseGenerator.Response(HttpStatus.OK, "The Event was updated successfully. ", event);
+            Event updatedEvent = eventService.updateEvent(id, eventMapper.EventUpdateDTOToEvent(eventUpdateDTO));
+            return ResponseGenerator.Response(HttpStatus.OK, "The Event was updated successfully.", updatedEvent);
         } catch (DefinedExceptions.ONotFoundException e) {
             return ResponseGenerator.Response(HttpStatus.NOT_FOUND, e.getMessage(), null);
         } catch (Exception e) {
@@ -71,17 +76,28 @@ public class EventsController {
         }
     }
 
+
     @DeleteMapping(value = "/Delete/{id}")
     public ResponseEntity<APIResponse<Void>> DeleteEvent(@PathVariable String id) {
         try {
             boolean isDeleted = eventService.deleteEventByID(id);
             if (isDeleted) {
-                return ResponseGenerator.Response(HttpStatus.OK, "Event deleted successfully. ", null);
+                return ResponseGenerator.Response(HttpStatus.OK, "Event deleted successfully.", null);
             } else {
                 return ResponseGenerator.Response(HttpStatus.NOT_FOUND, "This event wasn't found, ID: " + id, null);
             }
         } catch (Exception e) {
             return ResponseGenerator.Response(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred: " + e.getMessage(), null);
         }
+    }
+
+    @PostMapping("/Search")
+    public ResponseEntity<?> searchEvents(@RequestBody Map<String, String> request) {
+        String query = request.get("searchQuery");
+        List<Event> matchingEvents = eventService.searchEvents(query);
+        if (matchingEvents == null) {
+            matchingEvents = new ArrayList<>();
+        }
+        return ResponseEntity.ok(new SearchQuery(matchingEvents));
     }
 }
