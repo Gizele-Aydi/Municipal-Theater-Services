@@ -1,15 +1,13 @@
 package org.example.municipaltheater.models.ShowModels;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.mongodb.internal.connection.Time;
 import lombok.*;
 
-import org.example.municipaltheater.models.DifferentUsers.RegisteredUser;
-
+import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
@@ -24,6 +22,7 @@ import java.util.List;
 
 public class Show {
     @Id
+    @Generated
     private String showID;
     @NotBlank(message = "Show name is required.")
     private String showName;
@@ -36,8 +35,8 @@ public class Show {
     private LocalTime showStartTime;
     @NotBlank(message = "Show photo is required.")
     private String showPhotoURL;
-    @DBRef(lazy = true)
-    private List<RegisteredUser> BookedAudience;
+    @JsonProperty("seats")
+    private List<Seat> seats;
 
     public String getShowID() {
         return showID;
@@ -87,11 +86,8 @@ public class Show {
         this.showPhotoURL = showPhotoURL;
     }
 
-    public List<RegisteredUser> getBookedAudience() {
-        return BookedAudience;
-    }
+    public List<Seat> getSeats() { return seats; }
 
-    public void setBookedAudience(List<RegisteredUser> bookedAudience) {
-        BookedAudience = bookedAudience;
-    }
+    public void setSeats(List<Seat> seats) { this.seats = seats; }
+
 }

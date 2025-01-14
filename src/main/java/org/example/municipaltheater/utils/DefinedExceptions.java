@@ -17,4 +17,8 @@ public class DefinedExceptions {
             super(message);
         }
     }
+    public static class OConstrainViolationException extends RuntimeException {
+        public OConstrainViolationException(String message) { super(message); }
+    }
+
 }

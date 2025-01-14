@@ -1,11 +1,10 @@
 package org.example.municipaltheater.models.ShowModels;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.mongodb.internal.connection.Time;
-import org.example.municipaltheater.models.DifferentUsers.RegisteredUser;
-import org.springframework.data.mongodb.core.mapping.DBRef;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import lombok.*;
@@ -13,7 +12,6 @@ import lombok.*;
 import java.time.LocalTime;
 import java.util.Date;
 import java.util.List;
-
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -31,7 +29,10 @@ public class ShowUpdateDTO {
     private String showDuration;
     @NotNull(message = "Show starting time is required.")
     private LocalTime showStartTime;
+    @NotBlank(message = "Show photo is required.")
     private String showPhotoURL;
+    @JsonProperty("seats")
+    private List<Seat> seats;
 
     public String getShowName() {
         return showName;
@@ -72,4 +73,8 @@ public class ShowUpdateDTO {
     public void setShowPhotoURL(String showPhotoURL) {
         this.showPhotoURL = showPhotoURL;
     }
+
+    public List<Seat> getSeats() { return seats; }
+
+    public void setSeats(List<Seat> seats) { this.seats = seats; }
 }

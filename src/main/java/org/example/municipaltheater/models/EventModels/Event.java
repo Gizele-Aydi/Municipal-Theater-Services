@@ -18,6 +18,7 @@ import javax.validation.constraints.NotNull;
 @Document(collection = "Events")
 public class Event {
     @Id
+    @Generated
     private String eventID;
     @NotBlank(message = "Event name is required.")
     private String eventName;
