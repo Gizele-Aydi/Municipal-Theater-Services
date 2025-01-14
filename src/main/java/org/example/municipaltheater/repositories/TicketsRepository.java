@@ -12,5 +12,6 @@ public interface TicketsRepository extends MongoRepository<Ticket, String> {
     Optional<Ticket> findByShowAndUser(Show show, RegisteredUser user);
     List<Ticket> findByShow(Show show);
     List<Ticket> findByUser(RegisteredUser user);
+
 }
 

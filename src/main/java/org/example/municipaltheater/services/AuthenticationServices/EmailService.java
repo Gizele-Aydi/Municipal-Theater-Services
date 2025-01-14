@@ -27,4 +27,5 @@ public class EmailService {
         message.setText("Your email is verified. The registration was successful!");
         javaMailSender.send(message);
     }
+
 }

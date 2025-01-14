@@ -14,4 +14,5 @@ public interface UsersHandlingInterface {
     Optional<RegisteredUser> findUserById(String id);
     RegisteredUser updateUser(String id, RegisteredUser updatedUser);
     boolean deleteUserByID(String id);
+
 }

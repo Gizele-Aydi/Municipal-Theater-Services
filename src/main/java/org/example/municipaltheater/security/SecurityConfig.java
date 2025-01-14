@@ -68,4 +68,5 @@ public class SecurityConfig {
                 .oauth2Login(withDefaults())
                 .build();
     }
+
 }

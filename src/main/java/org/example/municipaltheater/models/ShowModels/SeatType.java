@@ -6,5 +6,4 @@ public enum SeatType {
     BALCON,
     GALERIE,
     AMPHITHEATRE
-
 }

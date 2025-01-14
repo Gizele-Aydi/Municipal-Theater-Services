@@ -14,4 +14,5 @@ public interface ShowsRepository extends MongoRepository<Show, String> {
     List<Show> findByShowNameContainingIgnoreCase(String showName);
     Show findByShowPhotoURL(String showPhotoURL);
     boolean existsByShowName(String showName);
+
 }

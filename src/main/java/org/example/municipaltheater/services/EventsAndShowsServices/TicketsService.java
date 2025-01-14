@@ -62,7 +62,6 @@ public class TicketsService {
     public List<Ticket> getTicketsForUser(RegisteredUser user) {
         return TicketRepo.findByUser(user);
     }
-
     public Ticket updateTicket(String ticketID, SeatType newSeatType) {
         Ticket ticket = TicketRepo.findById(ticketID)
                 .orElseThrow(() -> new RuntimeException("Ticket not found."));

@@ -34,7 +34,6 @@ public class Ticket {
     public String getTicketID() {
         return ticketID;
     }
-
     public void setTicketID(String ticketID) {
         this.ticketID = ticketID;
     }
@@ -42,7 +41,6 @@ public class Ticket {
     public Show getShow() {
         return show;
     }
-
     public void setShow(Show show) {
         this.show = show;
     }
@@ -50,7 +48,6 @@ public class Ticket {
     public SeatType getSeat() {
         return seat;
     }
-
     public void setSeat(SeatType seat) {
         this.seat = seat;
     }
@@ -58,7 +55,6 @@ public class Ticket {
     public double getPrice() {
         return price;
     }
-
     public void setPrice(double price) {
         this.price = price;
     }
@@ -66,7 +62,6 @@ public class Ticket {
     public RegisteredUser getUser() {
         return user;
     }
-
     public void setUser(RegisteredUser user) {
         this.user = user;
     }
@@ -74,7 +69,6 @@ public class Ticket {
     public boolean isHistory() {
         return isHistory;
     }
-
     public void setHistory(boolean history) {
         isHistory = history;
     }
@@ -82,7 +76,6 @@ public class Ticket {
     public boolean isPaid() {
         return isPaid;
     }
-
     public void setPaid(boolean paid) {
         isPaid = paid;
     }

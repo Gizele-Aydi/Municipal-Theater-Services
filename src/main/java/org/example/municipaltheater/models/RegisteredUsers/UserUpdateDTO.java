@@ -5,7 +5,6 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import javax.validation.constraints.NotBlank;
 
 public class UserUpdateDTO {
-
     @Indexed(unique=true)
     @NotBlank(message= "Username is a required field.")
     private String username;

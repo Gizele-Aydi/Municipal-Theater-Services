@@ -10,6 +10,7 @@ import javax.validation.constraints.NotNull;
 @ToString
 
 public class Seat {
+
     @NotBlank(message = "Seat type should be included.")
     private SeatType seatType;
     @NotNull(message = "The price of this seat type should be added.")

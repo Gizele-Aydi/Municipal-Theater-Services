@@ -18,6 +18,7 @@ import java.util.List;
 @Document(collection = "Registered Users")
 
 public class RegisteredUser {
+
     @Id
     @Generated
     private String userID;

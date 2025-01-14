@@ -12,5 +12,6 @@ public interface EventsRepository extends MongoRepository<Event, String> {
     Event findByEventPhotoURL(String eventPhotoURL);
     boolean existsByEventDescription(String eventDescription);
     boolean existsByEventName(String eventName);
+
 }
 

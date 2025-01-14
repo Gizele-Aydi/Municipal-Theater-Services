@@ -13,5 +13,6 @@ public interface RegisteredUsersRepository extends MongoRepository<RegisteredUse
     Optional<RegisteredUser> findByUsername(String username);
     Optional<Object> findByPhoneNum(String phoneNum);
     Optional<Object> findByEmail(String email);
+
 }
 

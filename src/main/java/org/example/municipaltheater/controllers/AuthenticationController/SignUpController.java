@@ -67,7 +67,7 @@ public class SignUpController {
         } catch (Exception e) {
             return ResponseGenerator.Response(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred: " + e.getMessage(), null);
         }
-    }
 
+    }
 
 }

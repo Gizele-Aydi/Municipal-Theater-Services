@@ -13,4 +13,5 @@ public class SearchQuery {
     public List<Show> getMatchingShows() {
         return matchingShows;
     }
+
 }

@@ -16,7 +16,6 @@ import java.util.stream.*;
 
 @Service
 public class EventsService implements EventsHandlingInterface {
-
     private static final Logger logger = LoggerFactory.getLogger(EventsService.class);
     private final EventsRepository eventRepo;
 

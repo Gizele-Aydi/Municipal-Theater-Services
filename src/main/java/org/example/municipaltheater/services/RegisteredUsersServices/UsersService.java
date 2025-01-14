@@ -33,7 +33,6 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
     public UsersService(RegisteredUsersRepository UserRepo) {
         this.UserRepo = UserRepo;
     }
-
     public Page<RegisteredUser> findAllUsers(Pageable pageable) {
         logger.info("Fetching all users with pagination: page {} size {}", pageable.getPageNumber(), pageable.getPageSize());
         return UserRepo.findAll(pageable);
