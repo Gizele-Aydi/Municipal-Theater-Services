@@ -2,7 +2,6 @@ package org.example.municipaltheater.controllers.EventsAndShowsControllers;
 
 import org.example.municipaltheater.models.APIResponse;
 import org.example.municipaltheater.models.RegisteredUsers.RegisteredUser;
-import org.example.municipaltheater.models.ShowModels.Ticket;
 import org.example.municipaltheater.models.ShowModels.*;
 import org.example.municipaltheater.repositories.DifferentUsersRepositories.RegisteredUsersRepository;
 import org.example.municipaltheater.repositories.ShowsAndEventsRepositories.ShowsRepository;
@@ -10,17 +9,16 @@ import org.example.municipaltheater.services.EventsAndShowsServices.ShowsService
 import org.example.municipaltheater.services.EventsAndShowsServices.TicketsService;
 import org.example.municipaltheater.utils.DefinedExceptions.*;
 import org.example.municipaltheater.interfaces.ShowsInterfaces.ShowMapper;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.time.*;
-import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/Shows")
@@ -43,7 +41,7 @@ public class ShowsController {
     }
 
     @GetMapping(value = "/All")
-    public ResponseEntity<APIResponse<List<Show>>> GetAllShows() {
+    public ResponseEntity<APIResponse<Show>> GetAllShows() {
         List<Show> shows = ShowService.findAllShows();
         if (shows.isEmpty()) {
             return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "The Shows list is empty", null));
@@ -68,14 +66,11 @@ public class ShowsController {
         try {
             Show show = showMapper.ShowUpdateDTOToShow(showUpdateDTO);
             Show addedShow = ShowService.saveShow(show);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new APIResponse<>(HttpStatus.CREATED.value(), "Show added successfully", addedShow));
+            return ResponseEntity.status(HttpStatus.CREATED).body(new APIResponse<>(HttpStatus.CREATED.value(), "Show added successfully", addedShow));
         } catch (OAlreadyExistsException | OServiceException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new APIResponse<>(HttpStatus.BAD_REQUEST.value(), e.getMessage(), null));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new APIResponse<>(HttpStatus.BAD_REQUEST.value(), e.getMessage(), null));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new APIResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "An unexpected error occurred: " + e.getMessage(), null));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new APIResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "An unexpected error occurred: " + e.getMessage(), null));
         }
     }
 
@@ -101,7 +96,7 @@ public class ShowsController {
     }
 
     @DeleteMapping(value = "/Delete/{id}")
-    public ResponseEntity<APIResponse<Void>> deleteShow(@PathVariable String id) {
+    public ResponseEntity<APIResponse<Void>> DeleteShow(@PathVariable String id) {
         try {
             boolean isDeleted = ShowService.deleteShowByID(id);
             if (isDeleted) {
@@ -117,7 +112,7 @@ public class ShowsController {
     }
 
     @PostMapping("/Search")
-    public ResponseEntity<APIResponse<SearchQuery>> searchShows(@RequestBody Map<String, String> request) {
+    public ResponseEntity<APIResponse<SearchQuery>> SearchShows(@RequestBody Map<String, String> request) {
         String query = request.get("searchQuery");
         if (query == null || query.trim().isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -130,59 +125,28 @@ public class ShowsController {
         return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Shows found.", new SearchQuery(matchingShows)));
     }
 
-    @PreAuthorize("isAuthenticated()")
-    @PostMapping("/{id}/book")
-    public ResponseEntity<APIResponse<String>> bookTicket(@PathVariable String id,
-                                                          @RequestParam String userId,
-                                                          @RequestParam SeatType seatType) {
+    //@PreAuthorize("isAuthenticated()")
+    @PostMapping("/{id}/Book")
+    public ResponseEntity<APIResponse<String>> BookTicket(@PathVariable String id, @RequestParam String userID, @RequestParam SeatType seatType) {
         try {
-            RegisteredUser user = UserRepo.findByUserID(userId)
-                    .orElseThrow(() -> new ONotFoundException("This user wasn't found."));
-            Show show = ShowRepo.findByShowID(id)
-                    .orElseThrow(() -> new ONotFoundException("This show wasn't found."));
+            RegisteredUser user = UserRepo.findByUserID(userID).orElseThrow(() -> new ONotFoundException("This user wasn't found."));
+            Show show = ShowRepo.findByShowID(id).orElseThrow(() -> new ONotFoundException("This show wasn't found."));
+            boolean seatReduced = show.reduceAvailableSeats(seatType);
+            if (!seatReduced) {
+                throw new IllegalArgumentException("There are no longer seats available for the selected seat type.");
+            }
+            ShowRepo.save(show);
             Ticket ticket = TicketService.addTicket(show, user, seatType);
+            if (user.getBookedTickets() == null) {
+                user.setBookedTickets(new ArrayList<>());
+            }
             user.getBookedTickets().add(ticket);
             UserRepo.save(user);
-
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new APIResponse<>(HttpStatus.CREATED.value(), "Ticket booked successfully!", "Ticket ID: " + ticket.getTicketID()));
+            return ResponseEntity.status(HttpStatus.CREATED).body(new APIResponse<>(HttpStatus.CREATED.value(), "Ticket booked successfully!", "Ticket ID: " + ticket.getTicketID()));
         } catch (ONotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new APIResponse<>(HttpStatus.NOT_FOUND.value(), e.getMessage(), null));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new APIResponse<>(HttpStatus.NOT_FOUND.value(), e.getMessage(), null));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new APIResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "An error occurred while booking the ticket.", null));
-        }
-    }
-
-    @PreAuthorize("isAuthenticated()")
-    @PostMapping("/{id}/pay")
-    public ResponseEntity<APIResponse<String>> payForTicket(@PathVariable String id, @RequestParam String userId) {
-        try {
-            RegisteredUser user = UserRepo.findByUserID(userId).orElseThrow(() -> new ONotFoundException("This user wasn't found."));
-            Show show = ShowRepo.findByShowID(id).orElseThrow(() -> new ONotFoundException("This show wasn't found."));
-            Ticket ticket = TicketService.getTicketByShowAndUser(show, user);
-            Date showDate = show.getShowDate();
-            LocalTime showStartTime = show.getShowStartTime();
-            LocalDateTime showDateTime = showDate.toInstant()
-                    .atZone(ZoneId.systemDefault())
-                    .toLocalDateTime();
-            showDateTime = showDateTime.withHour(showStartTime.getHour()).withMinute(showStartTime.getMinute())
-                    .withSecond(0).withNano(0);
-            if (showDateTime.isBefore(LocalDateTime.now())) {
-                TicketService.moveToHistory(ticket);
-            }
-            return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(),
-                    "The payment request can be processed successfully.",
-                    "Ticket ID: " + ticket.getTicketID()));
-        } catch (ONotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new APIResponse<>(HttpStatus.NOT_FOUND.value(), e.getMessage(), null));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new APIResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "An error occurred while processing the payment.", null));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new APIResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(),"An error occurred while booking the ticket.", null));
         }
     }
 }
-
-

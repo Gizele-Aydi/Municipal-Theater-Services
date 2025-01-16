@@ -7,7 +7,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 
-import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
@@ -89,5 +88,30 @@ public class Show {
     public List<Seat> getSeats() { return seats; }
 
     public void setSeats(List<Seat> seats) { this.seats = seats; }
+
+    public boolean reduceAvailableSeats(SeatType seatType) {
+        for (Seat seat : seats) {
+            if (seat.getSeatType().equals(seatType)) {
+                if (seat.getAvailableSeats() > 0) {
+                    seat.setAvailableSeats(seat.getAvailableSeats() - 1); // Decrease the available seats by 1
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+        throw new IllegalArgumentException("Seat type not found.");
+    }
+
+    public boolean increaseAvailableSeats(SeatType seatType) {
+        for (Seat seat : seats) {
+            if (seat.getSeatType().equals(seatType)) {
+                seat.setAvailableSeats(seat.getAvailableSeats() + 1);
+                return true;
+            }
+        }
+        throw new IllegalArgumentException("Seat type not found.");
+    }
+
 
 }

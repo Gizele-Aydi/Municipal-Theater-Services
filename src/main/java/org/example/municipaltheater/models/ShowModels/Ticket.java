@@ -1,8 +1,10 @@
 package org.example.municipaltheater.models.ShowModels;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 import org.example.municipaltheater.models.RegisteredUsers.RegisteredUser;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -25,11 +27,13 @@ public class Ticket {
     private SeatType seat;
     @NotNull(message = "The ticket price shouldn't be empty.")
     private double price;
-    @NotNull(message = "The ticket must belong to a user.")
     @DBRef
+    @JsonIgnore
     private RegisteredUser user;
+    @NotNull(message = "The ticket must belong to a user.")
     private boolean isHistory;
     private boolean isPaid;
+
 
     public String getTicketID() {
         return ticketID;

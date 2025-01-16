@@ -1,8 +1,10 @@
 package org.example.municipaltheater.models.RegisteredUsers;
 
+import org.example.municipaltheater.models.ShowModels.Ticket;
 import org.springframework.data.mongodb.core.index.Indexed;
 
 import javax.validation.constraints.NotBlank;
+import java.util.List;
 
 public class UserUpdateDTO {
     @Indexed(unique=true)
@@ -15,6 +17,8 @@ public class UserUpdateDTO {
     private String Password;
     @Indexed(unique=true)
     private String PhoneNum;
+    private List<Ticket> bookedTickets;
+    private List<Ticket> history;
 
     public String getUsername() {
         return username;
@@ -46,5 +50,21 @@ public class UserUpdateDTO {
 
     public void setPhoneNum(String phoneNum) {
         PhoneNum = phoneNum;
+    }
+
+    public List<Ticket> getBookedTickets() {
+        return bookedTickets;
+    }
+
+    public void setBookedTickets(List<Ticket> bookedTickets) {
+        this.bookedTickets = bookedTickets;
+    }
+
+    public List<Ticket> getHistory() {
+        return history;
+    }
+
+    public void setHistory(List<Ticket> history) {
+        this.history = history;
     }
 }

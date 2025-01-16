@@ -8,8 +8,10 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import javax.validation.constraints.NotBlank;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -33,10 +35,11 @@ public class RegisteredUser {
     @Indexed(unique = true)
     private String PhoneNum;
     private Role role;
-    @DBRef
-    private List<Ticket> BookedTickets;
-    @DBRef
-    private List<Ticket> History;
+    @DBRef(lazy = true)
+    @Field("bookedTickets")
+    private List<Ticket> bookedTickets = new ArrayList<>();
+    @DBRef(lazy = true)
+    private List<Ticket> History = new ArrayList<>();
 
     public RegisteredUser() {
     }
@@ -89,13 +92,9 @@ public class RegisteredUser {
         this.role = role;
     }
 
-    public List<Ticket> getBookedTickets() {
-        return BookedTickets;
-    }
+    public List<Ticket> getBookedTickets() { return bookedTickets;}
 
-    public void setBookedTickets(List<Ticket> bookedTickets) {
-        BookedTickets = bookedTickets;
-    }
+    public void setBookedTickets(List<Ticket> bookedTickets) {this.bookedTickets = bookedTickets;}
 
     public List<Ticket> getHistory() { return History; }
 

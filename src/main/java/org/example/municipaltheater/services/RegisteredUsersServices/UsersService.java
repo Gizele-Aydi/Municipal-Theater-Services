@@ -2,10 +2,14 @@ package org.example.municipaltheater.services.RegisteredUsersServices;
 
 import org.example.municipaltheater.interfaces.UsersInterfaces.UsersHandlingInterface;
 import org.example.municipaltheater.models.RegisteredUsers.RegisteredUser;
+import org.example.municipaltheater.models.ShowModels.Ticket;
 import org.example.municipaltheater.repositories.DifferentUsersRepositories.RegisteredUsersRepository;
 import org.example.municipaltheater.utils.DefinedExceptions.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,9 +21,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.slf4j.*;
 
 import javax.validation.Valid;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,14 +30,25 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
 
     private static final Logger logger = LoggerFactory.getLogger(UsersService.class);
     private final RegisteredUsersRepository UserRepo;
+    private final MongoTemplate mongoTemplate;
 
     @Autowired
-    public UsersService(RegisteredUsersRepository UserRepo) {
+    public UsersService(RegisteredUsersRepository UserRepo, MongoTemplate mongoTemplate) {
         this.UserRepo = UserRepo;
+        this.mongoTemplate = mongoTemplate;
     }
-    public Page<RegisteredUser> findAllUsers(Pageable pageable) {
+
+    public Page<Map<String, Object>> findAllUsersWithFilteredFields(Pageable pageable) {
         logger.info("Fetching all users with pagination: page {} size {}", pageable.getPageNumber(), pageable.getPageSize());
-        return UserRepo.findAll(pageable);
+        Page<RegisteredUser> usersPage = UserRepo.findAll(pageable);
+        return usersPage.map(user -> {
+            Map<String, Object> userData = filterUserData(user);
+            List<Map<String, Object>> filteredTickets = filterBookedTickets(user.getBookedTickets());
+            userData.put("bookedTickets", filteredTickets);
+            List<Map<String, Object>> filteredHistory = filterBookingHistory(user.getHistory());
+            userData.put("history", filteredHistory);
+            return userData;
+        });
     }
 
     public RegisteredUser saveUser(@Valid RegisteredUser user) {
@@ -48,14 +61,26 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
         return UserRepo.save(user);
     }
 
-    public Optional<RegisteredUser> findUserById(String id) {
-        logger.info("Fetching user by ID: {}", id);
-        Optional<RegisteredUser> user = UserRepo.findById(id);
-        if (user.isEmpty()) {
-            throw new ONotFoundException("This user wasn't found. ID: " + id);
-        }
-        return user;
+    public Map<String, Object> findUserByIdWithFilteredFields(String id) {
+        RegisteredUser registeredUser = UserRepo.findById(id).orElseThrow(() -> new ONotFoundException("This user wasn't found. ID: " + id));
+        List<Ticket> bookedTickets = mongoTemplate.find(Query.query(Criteria.where("user").is(registeredUser)), Ticket.class);
+        List<Ticket> history = mongoTemplate.find(Query.query(Criteria.where("user").is(registeredUser).and("paidStatus").is(true)), Ticket.class);
+        registeredUser.setBookedTickets(bookedTickets);
+        registeredUser.setHistory(history);
+        Map<String, Object> userData = filterUserData(registeredUser);
+        List<Map<String, Object>> filteredTickets = filterBookedTickets(bookedTickets);
+        List<Map<String, Object>> filteredHistory = filterBookingHistory(history);
+        userData.put("bookedTickets", filteredTickets);
+        userData.put("history", filteredHistory);
+        return userData;
     }
+
+    public Optional<RegisteredUser> findUserProfileById(String userId) {
+        RegisteredUser registeredUser = UserRepo.findById(userId)
+                .orElseThrow(() -> new ONotFoundException("Your profile wasn't found. ID: " + userId));
+        return Optional.of(registeredUser);
+    }
+
 
     public RegisteredUser updateUser(String id, @Valid RegisteredUser updatedUser) {
         logger.info("Attempting to update user with ID: {}", id);
@@ -101,6 +126,21 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
         return true;
     }
 
+    public Map<String, Object> findBookedTicketsForUser(RegisteredUser user) {
+        List<Ticket> bookedTickets = mongoTemplate.find(Query.query(Criteria.where("user").is(user)), Ticket.class);
+        List<Map<String, Object>> filteredTickets = filterBookedTickets(bookedTickets);
+        double totalAmount = bookedTickets.stream().mapToDouble(Ticket::getPrice).sum();
+        Map<String, Object> responseData = new LinkedHashMap<>();
+        responseData.put("BookedTickets", filteredTickets);
+        responseData.put("TotalAmount", totalAmount);
+        return responseData;
+    }
+
+    public List<Map<String, Object>> findBookingHistoryByUser(RegisteredUser user) {
+        List<Ticket> history = mongoTemplate.find(Query.query(Criteria.where("user").is(user).and("paidStatus").is(true)), Ticket.class);
+        return filterBookingHistory(history);
+    }
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         logger.info("Attempting to load user by username: {}", username);
@@ -132,4 +172,42 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
                 user.getPassword() == null || user.getPassword().isEmpty() ? "Password" : null
         ).filter(Objects::nonNull).collect(Collectors.toList());
     }
+
+    public Map<String, Object> filterUserData(RegisteredUser registeredUser) {
+        Map<String, Object> userData = new LinkedHashMap<>();
+        userData.put("userID", registeredUser.getUserID());
+        userData.put("username", registeredUser.getUsername());
+        userData.put("email", registeredUser.getEmail());
+        userData.put("password", registeredUser.getPassword());
+        userData.put("phoneNumber", registeredUser.getPhoneNum());
+        return userData;
+    }
+
+    public List<Map<String, Object>> filterBookedTickets(List<Ticket> bookedTickets) {
+        return bookedTickets.stream().map(ticket -> {
+            Map<String, Object> ticketData = new LinkedHashMap<>();
+            ticketData.put("ticketID", ticket.getTicketID());
+            ticketData.put("showName", ticket.getShow().getShowName());
+            ticketData.put("showDate", ticket.getShow().getShowDate());
+            ticketData.put("showStartTime", ticket.getShow().getShowStartTime());
+            ticketData.put("seatType", ticket.getSeat());
+            ticketData.put("price", ticket.getPrice());
+            return ticketData;
+        }).collect(Collectors.toList());
+    }
+
+    public List<Map<String, Object>> filterBookingHistory(List<Ticket> history) {
+        return history.stream().map(ticket -> {
+            Map<String, Object> ticketData = new LinkedHashMap<>();
+            ticketData.put("ticketID", ticket.getTicketID());
+            ticketData.put("showName", ticket.getShow().getShowName());
+            ticketData.put("showDate", ticket.getShow().getShowDate());
+            ticketData.put("showStartTime", ticket.getShow().getShowStartTime());
+            ticketData.put("seatType", ticket.getSeat());
+            ticketData.put("price", ticket.getPrice());
+            return ticketData;
+        }).collect(Collectors.toList());
+    }
+
+
 }

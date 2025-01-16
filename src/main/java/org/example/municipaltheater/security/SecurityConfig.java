@@ -60,7 +60,7 @@ public class SecurityConfig {
                         .defaultSuccessUrl("/Home", true)
                 )
                 .authorizeHttpRequests(registry -> {
-                    registry.requestMatchers("/Shows/{id}/book", "/Shows/{id}/pay", "/Users/{id}","/Users/All","/Users/Update/{id}","/Users/Delete/{id}","/Home", "/About", "/SignUp", "/LogIn", "/Events/All", "/Events/{id}","/Events/Update/{id}","/Events/Delete/{id}", "/Shows/All", "/Shows/{id}","/Shows/Update/{id}","/Shows/Delete/{id}").permitAll();
+                    registry.requestMatchers("/Shows/{id}/Book", "/Shows/{id}/Pay", "/Users/{id}","/Users/All","/Users/Update/{id}","/Users/Delete/{id}","/Home", "/About", "/SignUp", "/LogIn", "/Events/All", "/Events/{id}","/Events/Update/{id}","/Events/Delete/{id}", "/Shows/All", "/Shows/{id}","/Shows/Update/{id}","/Shows/Delete/{id}").permitAll();
                     registry.requestMatchers("/favicon.ico").permitAll();
                     registry.requestMatchers("/Profile").authenticated();
                     registry.anyRequest().authenticated();

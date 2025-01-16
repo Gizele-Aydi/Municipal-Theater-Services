@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -32,23 +33,23 @@ public class UsersController {
     }
 
     @GetMapping("/All")
-    public ResponseEntity<APIResponse<Page<RegisteredUser>>> GetAllUsers(Pageable pageable) {
-        Page<RegisteredUser> users = UserService.findAllUsers(pageable);
+    public ResponseEntity<APIResponse<Page<Map<String, Object>>>> getAllUsersWithFilteredFields(Pageable pageable) {
+        Page<Map<String, Object>> users = UserService.findAllUsersWithFilteredFields(pageable);
         if (users.isEmpty()) {
-            return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "The Users list is empty.", null));
+            return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "The Users' list is empty.", null));
         } else {
-            return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Users retrieved successfully.", users));
+            return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Users were successfully retrieved.", users));
         }
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<APIResponse<RegisteredUser>> GetUser(@PathVariable String id) {
-        Optional<RegisteredUser> user = UserService.findUserById(id);
-        return user.map(registeredUser ->
-                        ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "User found.", registeredUser)))
-                .orElseGet(() ->
-                        ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                .body(new APIResponse<>(HttpStatus.NOT_FOUND.value(), "This User wasn't found, ID: " + id, null)));
+    public ResponseEntity<APIResponse<Map<String, Object>>> getUserWithFilteredFields(@PathVariable String id) {
+        try {
+            Map<String, Object> user = UserService.findUserByIdWithFilteredFields(id);
+            return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "User found.", user));
+        } catch (ONotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new APIResponse<>(HttpStatus.NOT_FOUND.value(), ex.getMessage(), null));
+        }
     }
 
     @PutMapping("/Update/{id}")
@@ -57,11 +58,9 @@ public class UsersController {
             RegisteredUser updatedUser = UserService.updateUser(id, userMapper.userUpdateDTOToRegisteredUser(userUpdateDTO));
             return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "The User was updated successfully.", updatedUser));
         } catch (ONotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new APIResponse<>(HttpStatus.NOT_FOUND.value(), e.getMessage(), null));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new APIResponse<>(HttpStatus.NOT_FOUND.value(), e.getMessage(), null));
         } catch (OServiceException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new APIResponse<>(HttpStatus.BAD_REQUEST.value(), e.getMessage(), null));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new APIResponse<>(HttpStatus.BAD_REQUEST.value(), e.getMessage(), null));
         } catch (Exception e) {
             return ResponseGenerator.Response(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred: " + e.getMessage(), null);
         }
