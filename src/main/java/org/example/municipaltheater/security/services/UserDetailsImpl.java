@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class UserDetailsImpl implements UserDetails {
+
     private static final long serialVersionUID = 1L;
 
     private final String userID;
@@ -27,6 +28,7 @@ public class UserDetailsImpl implements UserDetails {
         this.password = password;
         this.role = role;
     }
+
 
     public static UserDetailsImpl build(RegisteredUser user) {
         return new UserDetailsImpl(user.getUserID(), user.getUsername(), user.getEmail(), user.getPassword(), user.getRole());

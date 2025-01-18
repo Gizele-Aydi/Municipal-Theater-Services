@@ -1,6 +1,7 @@
 package org.example.municipaltheater.models.RegisteredUsers;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Size;
 import org.example.municipaltheater.models.ShowModels.Ticket;
 
@@ -34,6 +35,7 @@ public class RegisteredUser {
     @Id
     @Generated
     private String userID;
+    @JsonProperty("username")
     @Indexed(unique = true) @Size(max = 20) @NotBlank(message = "Username is a required field.")
     private String username;
     @Indexed(unique = true) @Size(max = 50) @NotBlank(message = "Email is a required field.")
