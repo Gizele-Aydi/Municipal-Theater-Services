@@ -8,7 +8,10 @@ import org.example.municipaltheater.models.ShowModels.Ticket;
 import org.example.municipaltheater.repositories.DifferentUsersRepositories.RegisteredUsersRepository;
 import org.example.municipaltheater.repositories.ShowsAndEventsRepositories.ShowsRepository;
 import org.example.municipaltheater.repositories.TicketsRepository;
+import org.example.municipaltheater.services.RegisteredUsersServices.UsersService;
 import org.example.municipaltheater.utils.DefinedExceptions.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -22,6 +25,7 @@ public class TicketsService {
     private final TicketsRepository TicketRepo;
     private final RegisteredUsersRepository UserRepo;
     private final ShowsRepository ShowRepo;
+    private static final Logger logger = LoggerFactory.getLogger(UsersService.class);
 
     @Autowired
     public TicketsService(TicketsRepository ticketRepo, RegisteredUsersRepository userRepo, ShowsRepository showRepo) {
@@ -31,10 +35,8 @@ public class TicketsService {
     }
 
     public Ticket addTicket(Show show, RegisteredUser user, SeatType seatType) {
-        if (show == null || user == null) {
-            throw new IllegalArgumentException("Show or User cannot be null.");
-        }
-        Seat seat = show.getSeats().stream().filter(s -> s.getSeatType().equals(seatType)).findFirst().orElseThrow(() -> new IllegalArgumentException("This seat type isn't available for this show."));
+        Seat seat = show.getSeats().stream().filter(s -> s.getSeatType().equals(seatType)).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("This seat type isn't available for this show."));
         double seatPrice = seat.getPrice();
         Ticket ticket = new Ticket();
         ticket.setShow(show);
@@ -42,16 +44,14 @@ public class TicketsService {
         ticket.setSeat(seatType);
         ticket.setPrice(seatPrice);
         ticket.setHistory(false);
-        return TicketRepo.save(ticket);
+        Ticket savedTicket = TicketRepo.save(ticket);
+        show.getTickets().add(savedTicket);
+        ShowRepo.save(show);
+        return savedTicket;
     }
 
     public Ticket getTicketByShowAndUser(Show show, RegisteredUser user) {
         return TicketRepo.findByShowAndUser(show, user).orElseThrow(() -> new ONotFoundException("No ticket found for this show and user."));
-    }
-
-    @Cacheable(value = "UserBookedTickets", key = "#userId + '-' + #pageable.pageNumber")
-    public List<Ticket> getTicketsForUser(RegisteredUser user) {
-        return TicketRepo.findByUser(user);
     }
 
     public void deleteTicket(String ticketID) {
@@ -68,7 +68,6 @@ public class TicketsService {
         ShowRepo.save(show);
         TicketRepo.delete(ticket);
     }
-
 
     @Transactional
     public void payTicketAndMoveToHistory(String ticketID, RegisteredUser user, Show show) {

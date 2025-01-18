@@ -2,8 +2,13 @@ package org.example.municipaltheater.services.EventsAndShowsServices;
 
 import jakarta.validation.Valid;
 import org.example.municipaltheater.interfaces.ShowsInterfaces.ShowsHandlingInterface;
+import org.example.municipaltheater.models.RegisteredUsers.RegisteredUser;
 import org.example.municipaltheater.models.ShowModels.Show;
+import org.example.municipaltheater.models.ShowModels.Ticket;
+import org.example.municipaltheater.repositories.DifferentUsersRepositories.RegisteredUsersRepository;
 import org.example.municipaltheater.repositories.ShowsAndEventsRepositories.ShowsRepository;
+import org.example.municipaltheater.repositories.TicketsRepository;
+import org.example.municipaltheater.services.RegisteredUsersServices.UsersService;
 import org.example.municipaltheater.utils.DefinedExceptions.*;
 
 import org.slf4j.Logger;
@@ -22,10 +27,16 @@ public class ShowsService implements ShowsHandlingInterface {
 
     private static final Logger logger = LoggerFactory.getLogger(ShowsService.class);
     private final ShowsRepository ShowRepo;
+    private final TicketsRepository TicketRepo;
+    private final TicketsService TicketService;
+    private final UsersService UserService;
 
     @Autowired
-    public ShowsService(ShowsRepository showRepo) {
+    public ShowsService(ShowsRepository showRepo, TicketsRepository ticketRepo, TicketsService ticketService, UsersService userService) {
         ShowRepo = showRepo;
+        TicketRepo = ticketRepo;
+        TicketService = ticketService;
+        UserService = userService;
     }
 
     public List<Show> findAllShows() {
@@ -104,12 +115,12 @@ public class ShowsService implements ShowsHandlingInterface {
 
     public boolean deleteShowByID(String id) {
         logger.info("Attempting to delete show with ID: {}", id);
-        if (!ShowRepo.existsById(id)) {
-            throw new ONotFoundException("This show wasn't found, ID: " + id);
-        }
-        ShowRepo.deleteById(id);
+        Show show = ShowRepo.findById(id).orElseThrow(() -> new ONotFoundException("This show wasn't found, ID: " + id));
+        UserService.removeTicketsForDeletedShow(id);
+        ShowRepo.delete(show);
         return true;
     }
+
 
     public List<Show> searchShows(String searchQuery) {
         logger.info("Searching shows with query: {}", searchQuery);

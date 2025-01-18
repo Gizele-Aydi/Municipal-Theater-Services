@@ -47,10 +47,4 @@ public class APIResponse<E> {
         this.data = data;
     }
 
-    public List<E> getDataAsList() {
-        if (data instanceof List) {
-            return (List<E>) data;
-        }
-        return null;
-    }
 }

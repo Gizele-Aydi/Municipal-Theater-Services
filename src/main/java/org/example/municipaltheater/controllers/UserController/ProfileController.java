@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/Profile")
+@RequestMapping("/Account")
 @CrossOrigin(origins = "*")
 public class ProfileController {
 
@@ -56,7 +56,7 @@ public class ProfileController {
         return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Your account was successfully deleted.", null));
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     @GetMapping("/Booked-Tickets")
     public ResponseEntity<APIResponse<Map<String, Object>>> ViewBookedTickets(@AuthenticationPrincipal String userId) {
         RegisteredUser user = UserService.findUserProfileById(userId).orElseThrow(() -> new ONotFoundException("Your profile can't seem to be found."));
@@ -64,7 +64,7 @@ public class ProfileController {
         return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Currently booked tickets retrieved successfully.", responseData));
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_USER')")
     @PostMapping("/Booked-Tickets/{ticket-id}/Cancel")
     public ResponseEntity<APIResponse<Void>> CancelTicket(@PathVariable String ticketID) {
         try {
@@ -79,7 +79,7 @@ public class ProfileController {
         }
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_USER')")
     @PostMapping("/Booked-Tickets/Pay")
     public ResponseEntity<APIResponse<String>> PayTickets(@PathVariable String id, @RequestParam String userID) {
         try {
@@ -100,7 +100,7 @@ public class ProfileController {
         }
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_USER')")
     @GetMapping("/History")
     public ResponseEntity<APIResponse<List<Map<String, Object>>>> ViewHistory(@AuthenticationPrincipal String userID) {
         RegisteredUser user = UserService.findUserProfileById(userID).orElseThrow(() -> new ONotFoundException("Your profile can't seem to be found."));

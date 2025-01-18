@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -32,6 +33,7 @@ public class UsersController {
         this.userMapper = userMapper;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/All")
     public ResponseEntity<APIResponse<Page<Map<String, Object>>>> getAllUsersWithFilteredFields(Pageable pageable) {
         Page<Map<String, Object>> users = UserService.findAllUsersWithFilteredFields(pageable);
@@ -42,6 +44,7 @@ public class UsersController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<APIResponse<Map<String, Object>>> getUserWithFilteredFields(@PathVariable String id) {
         try {
@@ -52,6 +55,7 @@ public class UsersController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/Update/{id}")
     public ResponseEntity<APIResponse<RegisteredUser>> UpdateUser(@PathVariable String id, @RequestBody @Valid UserUpdateDTO userUpdateDTO) {
         try {
@@ -67,6 +71,7 @@ public class UsersController {
 
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/Delete/{id}")
     public ResponseEntity<APIResponse<Void>> DeleteUser(@PathVariable String id) {
         try {

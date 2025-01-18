@@ -20,8 +20,8 @@ public class Ticket {
     @Id
     @Generated
     private String ticketID;
-    @DBRef(lazy = true)
     @NotBlank(message = "The ticket must be associated with a show.")
+    @DBRef
     private Show show;
     @NotBlank(message = "The ticket seat type shouldn't be empty.")
     private SeatType seat;

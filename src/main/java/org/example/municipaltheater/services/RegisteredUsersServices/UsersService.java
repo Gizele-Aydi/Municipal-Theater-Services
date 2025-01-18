@@ -4,6 +4,7 @@ import org.example.municipaltheater.interfaces.UsersInterfaces.UsersHandlingInte
 import org.example.municipaltheater.models.RegisteredUsers.RegisteredUser;
 import org.example.municipaltheater.models.ShowModels.Ticket;
 import org.example.municipaltheater.repositories.DifferentUsersRepositories.RegisteredUsersRepository;
+import org.example.municipaltheater.repositories.TicketsRepository;
 import org.example.municipaltheater.utils.DefinedExceptions.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,11 +31,13 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
 
     private static final Logger logger = LoggerFactory.getLogger(UsersService.class);
     private final RegisteredUsersRepository UserRepo;
+    private final TicketsRepository TicketRepo;
     private final MongoTemplate mongoTemplate;
 
     @Autowired
-    public UsersService(RegisteredUsersRepository UserRepo, MongoTemplate mongoTemplate) {
+    public UsersService(RegisteredUsersRepository UserRepo, TicketsRepository ticketRepo, MongoTemplate mongoTemplate) {
         this.UserRepo = UserRepo;
+        TicketRepo = ticketRepo;
         this.mongoTemplate = mongoTemplate;
     }
 
@@ -43,9 +46,13 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
         Page<RegisteredUser> usersPage = UserRepo.findAll(pageable);
         return usersPage.map(user -> {
             Map<String, Object> userData = filterUserData(user);
-            List<Map<String, Object>> filteredTickets = filterBookedTickets(user.getBookedTickets());
+            List<Map<String, Object>> filteredTickets =
+                    Optional.ofNullable(user.getBookedTickets()).orElse(Collections.emptyList()).stream()
+                            .filter(Objects::nonNull).map(this::filterSingleTicket).collect(Collectors.toList());
             userData.put("bookedTickets", filteredTickets);
-            List<Map<String, Object>> filteredHistory = filterBookingHistory(user.getHistory());
+            List<Map<String, Object>> filteredHistory =
+                    Optional.ofNullable(user.getHistory()).orElse(Collections.emptyList()).stream()
+                            .filter(Objects::nonNull).map(this::filterSingleHistoryEntry).collect(Collectors.toList());
             userData.put("history", filteredHistory);
             return userData;
         });
@@ -107,10 +114,6 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
             user.setPassword(updatedUser.getPassword());
             isUpdated = true;
         }
-        if (updatedUser.getPhoneNum() != null && !updatedUser.getPhoneNum().equals(user.getPhoneNum())) {
-            user.setPhoneNum(updatedUser.getPhoneNum());
-            isUpdated = true;
-        }
         if (!isUpdated) {
             throw new OServiceException("There were no changes in the fields of the user.");
         }
@@ -144,33 +147,12 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         logger.info("Attempting to load user by username: {}", username);
-        RegisteredUser user = UserRepo.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("This user with the following Username wasn't found: " + username));
+        RegisteredUser user = UserRepo.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("This user with the following Username wasn't found: " + username));
 
         return User.builder()
                 .username(user.getUsername())
                 .password(user.getPassword())
                 .build();
-    }
-
-    private void validateUserUniqueness(RegisteredUser user) {
-        if (UserRepo.findByUsername(user.getUsername()).isPresent()) {
-            throw new OAlreadyExistsException("Username is already taken.");
-        }
-        if (UserRepo.findByEmail(user.getEmail()).isPresent()) {
-            throw new OAlreadyExistsException("Email is already registered.");
-        }
-        if (user.getPhoneNum() != null && UserRepo.findByPhoneNum(user.getPhoneNum()).isPresent()) {
-            throw new OAlreadyExistsException("Phone number is already registered.");
-        }
-    }
-
-    private List<String> getMissingFields(RegisteredUser user) {
-        return Stream.of(
-                user.getUsername() == null || user.getUsername().isEmpty() ? "Username" : null,
-                user.getEmail() == null || user.getEmail().isEmpty() ? "Email" : null,
-                user.getPassword() == null || user.getPassword().isEmpty() ? "Password" : null
-        ).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     public Map<String, Object> filterUserData(RegisteredUser registeredUser) {
@@ -179,7 +161,6 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
         userData.put("username", registeredUser.getUsername());
         userData.put("email", registeredUser.getEmail());
         userData.put("password", registeredUser.getPassword());
-        userData.put("phoneNumber", registeredUser.getPhoneNum());
         return userData;
     }
 
@@ -209,5 +190,47 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
         }).collect(Collectors.toList());
     }
 
+    public void removeTicketsForDeletedShow(String showId) {
+        List<Ticket> tickets = TicketRepo.findByShowId(showId);
+        for (Ticket ticket : tickets) {
+            RegisteredUser user = ticket.getUser();
+            if (user != null && user.getBookedTickets() != null) {
+                user.getBookedTickets().remove(ticket);
+                UserRepo.save(user);
+            }
+        }
+    }
 
+    private void validateUserUniqueness(RegisteredUser user) {
+        if (UserRepo.findByUsername(user.getUsername()).isPresent()) {
+            throw new OAlreadyExistsException("Username is already taken.");
+        }
+        if (UserRepo.findByEmail(user.getEmail()).isPresent()) {
+            throw new OAlreadyExistsException("Email is already registered.");
+        }
+    }
+
+    private List<String> getMissingFields(RegisteredUser user) {
+        return Stream.of(
+                user.getUsername() == null || user.getUsername().isEmpty() ? "Username" : null,
+                user.getEmail() == null || user.getEmail().isEmpty() ? "Email" : null,
+                user.getPassword() == null || user.getPassword().isEmpty() ? "Password" : null
+        ).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    private Map<String, Object> filterSingleTicket(Ticket ticket) {
+        Map<String, Object> filteredTicket = new HashMap<>();
+        filteredTicket.put("ticketId", ticket.getTicketID());
+        filteredTicket.put("showName", ticket.getShow().getShowName());
+        filteredTicket.put("price", ticket.getPrice());
+        return filteredTicket;
+    }
+
+    private Map<String, Object> filterSingleHistoryEntry(Ticket historyEntry) {
+        Map<String, Object> filteredHistory = new HashMap<>();
+        filteredHistory.put("ticketId", historyEntry.getTicketID());
+        filteredHistory.put("showName", historyEntry.getShow().getShowName());
+        filteredHistory.put("showDate", historyEntry.getShow().getShowDate());
+        return filteredHistory;
+    }
 }

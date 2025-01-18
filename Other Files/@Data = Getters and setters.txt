@@ -1,3 +1,0 @@
-@Data => Getters and setters
-@Document => Indicate that this is a document
-@AllArgsConstructor => constructor

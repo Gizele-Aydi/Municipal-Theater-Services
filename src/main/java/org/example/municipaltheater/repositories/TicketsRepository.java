@@ -12,10 +12,7 @@ import java.util.Optional;
 
 public interface TicketsRepository extends MongoRepository<Ticket, String> {
     Optional<Ticket> findByShowAndUser(Show show, RegisteredUser user);
-    List<Ticket> findByUser(RegisteredUser user);
-    @Query("{ 'userId': ?0, 'paid': false }")
-    List<Ticket> findByUserIdAndPaidStatus(String id, boolean b);
-
-
+    @Query("{ 'show.$id': ?0 }")
+    List<Ticket> findByShowId(String showId);
 }
 

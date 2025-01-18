@@ -2,6 +2,7 @@ package org.example.municipaltheater.models.ShowModels;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -11,6 +12,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -36,11 +38,12 @@ public class Show {
     private String showPhotoURL;
     @JsonProperty("seats")
     private List<Seat> seats;
+    @DBRef(lazy = true)
+    private List<Ticket> tickets = new ArrayList<>();
 
     public String getShowID() {
         return showID;
     }
-
     public void setShowID(String showID) {
         this.showID = showID;
     }
@@ -48,7 +51,6 @@ public class Show {
     public String getShowName() {
         return showName;
     }
-
     public void setShowName(String showName) {
         this.showName = showName;
     }
@@ -56,7 +58,6 @@ public class Show {
     public Date getShowDate() {
         return showDate;
     }
-
     public void setShowDate(Date showDate) {
         this.showDate = showDate;
     }
@@ -64,7 +65,6 @@ public class Show {
     public String getShowDuration() {
         return showDuration;
     }
-
     public void setShowDuration(String showDuration) {
         this.showDuration = showDuration;
     }
@@ -72,7 +72,6 @@ public class Show {
     public LocalTime getShowStartTime() {
         return showStartTime;
     }
-
     public void setShowStartTime(LocalTime showStartTime) {
         this.showStartTime = showStartTime;
     }
@@ -80,20 +79,29 @@ public class Show {
     public String getShowPhotoURL() {
         return showPhotoURL;
     }
-
     public void setShowPhotoURL(String showPhotoURL) {
         this.showPhotoURL = showPhotoURL;
     }
 
-    public List<Seat> getSeats() { return seats; }
+    public List<Seat> getSeats() {
+        return seats;
+    }
+    public void setSeats(List<Seat> seats) {
+        this.seats = seats;
+    }
 
-    public void setSeats(List<Seat> seats) { this.seats = seats; }
+    public List<Ticket> getTickets() {
+        return tickets;
+    }
+    public void setTickets(List<Ticket> tickets) {
+        this.tickets = tickets;
+    }
 
     public boolean reduceAvailableSeats(SeatType seatType) {
         for (Seat seat : seats) {
             if (seat.getSeatType().equals(seatType)) {
                 if (seat.getAvailableSeats() > 0) {
-                    seat.setAvailableSeats(seat.getAvailableSeats() - 1); // Decrease the available seats by 1
+                    seat.setAvailableSeats(seat.getAvailableSeats() - 1);
                     return true;
                 } else {
                     return false;
@@ -112,6 +120,5 @@ public class Show {
         }
         throw new IllegalArgumentException("Seat type not found.");
     }
-
 
 }

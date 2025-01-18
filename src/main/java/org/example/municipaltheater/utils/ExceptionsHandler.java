@@ -56,4 +56,5 @@ public class ExceptionsHandler {
         });
         return new ResponseEntity<>(new APIResponse<>(HttpStatus.BAD_REQUEST.value(), "Validation failed", errors), HttpStatus.BAD_REQUEST);
     }
+
 }
