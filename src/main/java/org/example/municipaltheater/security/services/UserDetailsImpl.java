@@ -2,7 +2,6 @@ package org.example.municipaltheater.security.services;
 
 import org.example.municipaltheater.models.RegisteredUsers.RegisteredUser;
 import org.example.municipaltheater.models.RegisteredUsers.Role;
-
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -28,7 +27,6 @@ public class UserDetailsImpl implements UserDetails {
         this.password = password;
         this.role = role;
     }
-
 
     public static UserDetailsImpl build(RegisteredUser user) {
         return new UserDetailsImpl(user.getUserID(), user.getUsername(), user.getEmail(), user.getPassword(), user.getRole());
@@ -71,5 +69,10 @@ public class UserDetailsImpl implements UserDetails {
             return false;
         UserDetailsImpl user = (UserDetailsImpl) o;
         return Objects.equals(userID, user.userID);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(userID);
     }
 }

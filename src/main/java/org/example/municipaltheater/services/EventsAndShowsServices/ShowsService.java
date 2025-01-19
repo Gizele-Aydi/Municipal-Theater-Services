@@ -8,13 +8,13 @@ import org.example.municipaltheater.models.ShowModels.Ticket;
 import org.example.municipaltheater.repositories.DifferentUsersRepositories.RegisteredUsersRepository;
 import org.example.municipaltheater.repositories.ShowsAndEventsRepositories.ShowsRepository;
 import org.example.municipaltheater.repositories.TicketsRepository;
-import org.example.municipaltheater.services.RegisteredUsersServices.UsersService;
 import org.example.municipaltheater.utils.DefinedExceptions.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
@@ -28,15 +28,13 @@ public class ShowsService implements ShowsHandlingInterface {
     private static final Logger logger = LoggerFactory.getLogger(ShowsService.class);
     private final ShowsRepository ShowRepo;
     private final TicketsRepository TicketRepo;
-    private final TicketsService TicketService;
-    private final UsersService UserService;
+    private final RegisteredUsersRepository UserRepo;
 
     @Autowired
-    public ShowsService(ShowsRepository showRepo, TicketsRepository ticketRepo, TicketsService ticketService, UsersService userService) {
+    public ShowsService(ShowsRepository showRepo, TicketsRepository ticketRepo, RegisteredUsersRepository userRepo) {
         ShowRepo = showRepo;
         TicketRepo = ticketRepo;
-        TicketService = ticketService;
-        UserService = userService;
+        UserRepo = userRepo;
     }
 
     public List<Show> findAllShows() {
@@ -113,10 +111,20 @@ public class ShowsService implements ShowsHandlingInterface {
         return ShowRepo.save(existingShow);
     }
 
+    @Transactional
     public boolean deleteShowByID(String id) {
         logger.info("Attempting to delete show with ID: {}", id);
         Show show = ShowRepo.findById(id).orElseThrow(() -> new ONotFoundException("This show wasn't found, ID: " + id));
-        UserService.removeTicketsForDeletedShow(id);
+        List<Ticket> associatedTickets = TicketRepo.findByShow(show);
+        for (Ticket ticket : associatedTickets) {
+            RegisteredUser user = ticket.getUser();
+            if (user != null) {
+                user.getBookedTickets().remove(ticket);
+                user.getHistory().remove(ticket);
+                UserRepo.save(user);
+            }
+        }
+        TicketRepo.deleteByShow(show);
         ShowRepo.delete(show);
         return true;
     }

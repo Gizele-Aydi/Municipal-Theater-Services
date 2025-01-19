@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.*;
 
 @RestController
-@RequestMapping("/Shows")
+@RequestMapping("/shows")
 @CrossOrigin(origins = "*")
 public class ShowsController {
 
@@ -41,29 +41,8 @@ public class ShowsController {
         ShowRepo = showRepo;
     }
 
-    @GetMapping(value = "/All")
-    public ResponseEntity<APIResponse<Show>> GetAllShows() {
-        List<Show> shows = ShowService.findAllShows();
-        if (shows.isEmpty()) {
-            return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "The Shows list is empty", null));
-        } else {
-            return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Shows retrieved successfully", shows));
-        }
-    }
-
-    @GetMapping(value = "/{id}")
-    public ResponseEntity<APIResponse<ShowUpdateDTO>> GetShow(@PathVariable String id) {
-        return ShowService.findShowByID(id)
-                .map(show -> {
-                    ShowUpdateDTO showDTO = showMapper.ShowToShowUpdateDTO(show);
-                    return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Show found.", showDTO));
-                })
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(new APIResponse<>(HttpStatus.NOT_FOUND.value(), "This show wasn't found, ID: " + id, null)));
-    }
-
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @PostMapping(value = "/Add")
+    @PostMapping(value = "/add")
     public ResponseEntity<APIResponse<Show>> AddShow(@RequestBody @Valid ShowUpdateDTO showUpdateDTO) {
         try {
             Show show = showMapper.ShowUpdateDTOToShow(showUpdateDTO);
@@ -76,13 +55,29 @@ public class ShowsController {
         }
     }
 
+    @GetMapping(value = "/all")
+    public ResponseEntity<APIResponse<Show>> GetAllShows() {
+        List<Show> shows = ShowService.findAllShows();
+        if (shows.isEmpty()) {
+            return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "The Shows list is empty", null));
+        } else {
+            return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Shows retrieved successfully", shows));
+        }
+    }
+
+    @GetMapping(value = "/{id}")
+    public ResponseEntity<APIResponse<ShowUpdateDTO>> GetShow(@PathVariable String id) {
+        return ShowService.findShowByID(id).map(show -> {
+                    ShowUpdateDTO showDTO = showMapper.ShowToShowUpdateDTO(show);
+                    return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Show found.", showDTO));
+                }).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(new APIResponse<>(HttpStatus.NOT_FOUND.value(), "This show wasn't found, ID: " + id, null)));
+    }
+
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @PutMapping("/Update/{id}")
+    @PutMapping("/update/{id}")
     public ResponseEntity<APIResponse<Show>> UpdateShow(@PathVariable String id, @RequestBody ShowUpdateDTO showUpdateDTO) {
         try {
-            Show show = ShowService.findShowByID(id).orElseThrow(() ->
-                    new ONotFoundException("This show wasn't found, ID: " + id));
-
+            Show show = ShowService.findShowByID(id).orElseThrow(() -> new ONotFoundException("This show wasn't found, ID: " + id));
             showMapper.updateShowFromDTO(showUpdateDTO, show);
             Show updatedShow = ShowService.updateShow(id, show);
             return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "The Show was updated successfully.", updatedShow));
@@ -99,7 +94,7 @@ public class ShowsController {
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @DeleteMapping(value = "/Delete/{id}")
+    @DeleteMapping(value = "/delete/{id}")
     public ResponseEntity<APIResponse<Void>> DeleteShow(@PathVariable String id) {
         try {
             boolean isDeleted = ShowService.deleteShowByID(id);
@@ -115,7 +110,7 @@ public class ShowsController {
         }
     }
 
-    @PostMapping("/Search")
+    @PostMapping("/search")
     public ResponseEntity<APIResponse<SearchQuery>> SearchShows(@RequestBody Map<String, String> request) {
         String query = request.get("searchQuery");
         if (query == null || query.trim().isEmpty()) {
@@ -129,16 +124,14 @@ public class ShowsController {
     }
 
     @PreAuthorize("hasRole('ROLE_USER')")
-    @PostMapping("/{id}/Book")
+    @PostMapping("/{id}/book")
     public ResponseEntity<APIResponse<String>> BookTicket(@PathVariable String id, @RequestParam String userID, @RequestParam SeatType seatType) {
         try {
             RegisteredUser user = UserRepo.findByUserID(userID).orElseThrow(() -> new ONotFoundException("This user wasn't found."));
             Show show = ShowRepo.findByShowID(id).orElseThrow(() -> new ONotFoundException("This show wasn't found."));
-            Seat seat = show.getSeats().stream().filter(s -> s.getSeatType().equals(seatType)).findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("This seat type is no longer available for this show."));
+            Seat seat = show.getSeats().stream().filter(s -> s.getSeatType().equals(seatType)).findFirst().orElseThrow(() -> new IllegalArgumentException("This seat type is no longer available for this show."));
             if (seat.getAvailableSeats() <= 0) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(new APIResponse<>(HttpStatus.BAD_REQUEST.value(), "There are no longer seats available of this type for this show.", null));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new APIResponse<>(HttpStatus.BAD_REQUEST.value(), "There are no longer seats available of this type for this show.", null));
             }
             boolean seatReduced = show.reduceAvailableSeats(seatType);
             if (!seatReduced) {
@@ -158,6 +151,5 @@ public class ShowsController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new APIResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "An error occurred while booking the ticket.", null));
         }
     }
-
 
 }

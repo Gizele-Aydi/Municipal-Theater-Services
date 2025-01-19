@@ -2,15 +2,17 @@ package org.example.municipaltheater.services.RegisteredUsersServices;
 
 import org.example.municipaltheater.interfaces.UsersInterfaces.UsersHandlingInterface;
 import org.example.municipaltheater.models.RegisteredUsers.RegisteredUser;
+import org.example.municipaltheater.models.ShowModels.Show;
 import org.example.municipaltheater.models.ShowModels.Ticket;
 import org.example.municipaltheater.repositories.DifferentUsersRepositories.RegisteredUsersRepository;
-import org.example.municipaltheater.repositories.TicketsRepository;
+
 import org.example.municipaltheater.utils.DefinedExceptions.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,14 +33,73 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
 
     private static final Logger logger = LoggerFactory.getLogger(UsersService.class);
     private final RegisteredUsersRepository UserRepo;
-    private final TicketsRepository TicketRepo;
     private final MongoTemplate mongoTemplate;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public UsersService(RegisteredUsersRepository UserRepo, TicketsRepository ticketRepo, MongoTemplate mongoTemplate) {
+    public UsersService(RegisteredUsersRepository UserRepo, MongoTemplate mongoTemplate, PasswordEncoder passwordEncoder) {
         this.UserRepo = UserRepo;
-        TicketRepo = ticketRepo;
         this.mongoTemplate = mongoTemplate;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        logger.info("Attempting to load user by username: {}", username);
+        RegisteredUser user = UserRepo.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("This user with the following Username wasn't found: " + username));
+        return User.builder().username(user.getUsername()).password(user.getPassword()).build();
+    }
+
+    public RegisteredUser saveUser(@Valid RegisteredUser user) {
+        logger.info("Attempting to save user: {}", user.getUsername());
+        List<String> missingFields = getMissingFields(user);
+        if (!missingFields.isEmpty()) {
+            throw new OServiceException(String.join(" and ", missingFields) + " is/are empty");
+        }
+        validateUserUniqueness(user);
+        return UserRepo.save(user);
+    }
+
+    public RegisteredUser updateUser(String id, @Valid RegisteredUser updatedUser) {
+        logger.info("Attempting to update user with ID: {}", id);
+        List<String> missingFields = getMissingFields(updatedUser);
+        if (!missingFields.isEmpty()) {
+            throw new OServiceException(String.join(" and ", missingFields) + " is/are empty");
+        }
+        Optional<RegisteredUser> existingUserOpt = UserRepo.findById(id);
+        if (existingUserOpt.isEmpty()) {
+            throw new ONotFoundException("This user wasn't found. ID: " + id);
+        }
+        RegisteredUser existingUser = existingUserOpt.get();
+        boolean isUpdated = false;
+        if (updatedUser.getUsername() != null && !updatedUser.getUsername().equals(existingUser.getUsername())) {
+            existingUser.setUsername(updatedUser.getUsername());
+            isUpdated = true;
+        }
+        if (updatedUser.getEmail() != null && !updatedUser.getEmail().equals(existingUser.getEmail())) {
+            existingUser.setEmail(updatedUser.getEmail());
+            isUpdated = true;
+        }
+        if (updatedUser.getPassword() != null && !passwordEncoder.matches(updatedUser.getPassword(), existingUser.getPassword())) {
+            existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
+            isUpdated = true;
+        }
+        existingUser.setRole(existingUser.getRole());
+        existingUser.setBookedTickets(existingUser.getBookedTickets());
+        existingUser.setHistory(existingUser.getHistory());
+        if (!isUpdated) {
+            throw new OServiceException("There were no changes in the fields of the user.");
+        }
+        return UserRepo.save(existingUser);
+    }
+
+    public boolean deleteUserByID(String id) {
+        logger.info("Attempting to delete user with ID: {}", id);
+        if (!UserRepo.existsById(id)) {
+            throw new ONotFoundException("This user wasn't found. ID: " + id);
+        }
+        UserRepo.deleteById(id);
+        return true;
     }
 
     public Page<Map<String, Object>> findAllUsersWithFilteredFields(Pageable pageable) {
@@ -56,16 +117,6 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
             userData.put("history", filteredHistory);
             return userData;
         });
-    }
-
-    public RegisteredUser saveUser(@Valid RegisteredUser user) {
-        logger.info("Attempting to save user: {}", user.getUsername());
-        List<String> missingFields = getMissingFields(user);
-        if (!missingFields.isEmpty()) {
-            throw new OServiceException(String.join(" and ", missingFields) + " is/are empty");
-        }
-        validateUserUniqueness(user);
-        return UserRepo.save(user);
     }
 
     public Map<String, Object> findUserByIdWithFilteredFields(String id) {
@@ -88,47 +139,6 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
         return Optional.of(registeredUser);
     }
 
-
-    public RegisteredUser updateUser(String id, @Valid RegisteredUser updatedUser) {
-        logger.info("Attempting to update user with ID: {}", id);
-        List<String> missingFields = getMissingFields(updatedUser);
-        if (!missingFields.isEmpty()) {
-            throw new OServiceException(String.join(" and ", missingFields) + " is/are empty");
-        }
-        Optional<RegisteredUser> existingUserOpt = UserRepo.findById(id);
-        if (existingUserOpt.isEmpty()) {
-            throw new ONotFoundException("This user wasn't found. ID: " + id);
-        }
-        RegisteredUser user = existingUserOpt.get();
-        boolean isUpdated = false;
-
-        if (updatedUser.getUsername() != null && !updatedUser.getUsername().equals(user.getUsername())) {
-            user.setUsername(updatedUser.getUsername());
-            isUpdated = true;
-        }
-        if (updatedUser.getEmail() != null && !updatedUser.getEmail().equals(user.getEmail())) {
-            user.setEmail(updatedUser.getEmail());
-            isUpdated = true;
-        }
-        if (updatedUser.getPassword() != null && !updatedUser.getPassword().equals(user.getPassword())) {
-            user.setPassword(updatedUser.getPassword());
-            isUpdated = true;
-        }
-        if (!isUpdated) {
-            throw new OServiceException("There were no changes in the fields of the user.");
-        }
-        return UserRepo.save(user);
-    }
-
-    public boolean deleteUserByID(String id) {
-        logger.info("Attempting to delete user with ID: {}", id);
-        if (!UserRepo.existsById(id)) {
-            throw new ONotFoundException("This user wasn't found. ID: " + id);
-        }
-        UserRepo.deleteById(id);
-        return true;
-    }
-
     public Map<String, Object> findBookedTicketsForUser(RegisteredUser user) {
         List<Ticket> bookedTickets = mongoTemplate.find(Query.query(Criteria.where("user").is(user)), Ticket.class);
         List<Map<String, Object>> filteredTickets = filterBookedTickets(bookedTickets);
@@ -140,19 +150,24 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
     }
 
     public List<Map<String, Object>> findBookingHistoryByUser(RegisteredUser user) {
-        List<Ticket> history = mongoTemplate.find(Query.query(Criteria.where("user").is(user).and("paidStatus").is(true)), Ticket.class);
-        return filterBookingHistory(history);
-    }
-
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        logger.info("Attempting to load user by username: {}", username);
-        RegisteredUser user = UserRepo.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("This user with the following Username wasn't found: " + username));
-
-        return User.builder()
-                .username(user.getUsername())
-                .password(user.getPassword())
-                .build();
+        List<Ticket> history = mongoTemplate.find(Query.query(Criteria.where("user").is(user).and("isHistory").is(true)), Ticket.class);
+        return history.stream().map(ticket -> {
+            Map<String, Object> ticketData = new LinkedHashMap<>();
+            ticketData.put("ticketId", ticket.getTicketID());
+            Show show = ticket.getShow();
+            if (show != null) {
+                ticketData.put("showName", show.getShowName());
+                ticketData.put("showDate", show.getShowDate());
+                ticketData.put("showStartTime", show.getShowStartTime());
+            } else {
+                ticketData.put("showName", "Deleted Show");
+                ticketData.put("showDate", null);
+                ticketData.put("showStartTime", null);
+            }
+            ticketData.put("seatType", ticket.getSeat());
+            ticketData.put("price", ticket.getPrice());
+            return ticketData;
+        }).collect(Collectors.toList());
     }
 
     public Map<String, Object> filterUserData(RegisteredUser registeredUser) {
@@ -165,19 +180,40 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
     }
 
     public List<Map<String, Object>> filterBookedTickets(List<Ticket> bookedTickets) {
-        return bookedTickets.stream().map(ticket -> {
-            Map<String, Object> ticketData = new LinkedHashMap<>();
-            ticketData.put("ticketID", ticket.getTicketID());
-            ticketData.put("showName", ticket.getShow().getShowName());
-            ticketData.put("showDate", ticket.getShow().getShowDate());
-            ticketData.put("showStartTime", ticket.getShow().getShowStartTime());
-            ticketData.put("seatType", ticket.getSeat());
-            ticketData.put("price", ticket.getPrice());
-            return ticketData;
-        }).collect(Collectors.toList());
+        return getMaps(bookedTickets);
     }
 
     public List<Map<String, Object>> filterBookingHistory(List<Ticket> history) {
+        return getMaps(history);
+    }
+
+    private Map<String, Object> filterSingleTicket(Ticket ticket) {
+        Map<String, Object> filteredTicket = new LinkedHashMap<>();
+        filteredTicket.put("ticketId", ticket.getTicketID());
+        Show show = ticket.getShow();
+        if (show != null) {
+            filteredTicket.put("showName", show.getShowName());
+            filteredTicket.put("showDate", show.getShowDate());
+            filteredTicket.put("showStartTime", show.getShowStartTime());
+        } else {
+            filteredTicket.put("showName", "Deleted Show");
+            filteredTicket.put("showDate", null);
+            filteredTicket.put("showStartTime", null);
+        }
+        filteredTicket.put("seatType", ticket.getSeat());
+        filteredTicket.put("price", ticket.getPrice());
+        return filteredTicket;
+    }
+
+    private Map<String, Object> filterSingleHistoryEntry(Ticket historyEntry) {
+        Map<String, Object> filteredHistory = new HashMap<>();
+        filteredHistory.put("ticketId", historyEntry.getTicketID());
+        filteredHistory.put("showName", historyEntry.getShow().getShowName());
+        filteredHistory.put("showDate", historyEntry.getShow().getShowDate());
+        return filteredHistory;
+    }
+
+    private List<Map<String, Object>> getMaps(List<Ticket> history) {
         return history.stream().map(ticket -> {
             Map<String, Object> ticketData = new LinkedHashMap<>();
             ticketData.put("ticketID", ticket.getTicketID());
@@ -188,17 +224,6 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
             ticketData.put("price", ticket.getPrice());
             return ticketData;
         }).collect(Collectors.toList());
-    }
-
-    public void removeTicketsForDeletedShow(String showId) {
-        List<Ticket> tickets = TicketRepo.findByShowId(showId);
-        for (Ticket ticket : tickets) {
-            RegisteredUser user = ticket.getUser();
-            if (user != null && user.getBookedTickets() != null) {
-                user.getBookedTickets().remove(ticket);
-                UserRepo.save(user);
-            }
-        }
     }
 
     private void validateUserUniqueness(RegisteredUser user) {
@@ -218,19 +243,4 @@ public class UsersService implements UserDetailsService, UsersHandlingInterface 
         ).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
-    private Map<String, Object> filterSingleTicket(Ticket ticket) {
-        Map<String, Object> filteredTicket = new HashMap<>();
-        filteredTicket.put("ticketId", ticket.getTicketID());
-        filteredTicket.put("showName", ticket.getShow().getShowName());
-        filteredTicket.put("price", ticket.getPrice());
-        return filteredTicket;
-    }
-
-    private Map<String, Object> filterSingleHistoryEntry(Ticket historyEntry) {
-        Map<String, Object> filteredHistory = new HashMap<>();
-        filteredHistory.put("ticketId", historyEntry.getTicketID());
-        filteredHistory.put("showName", historyEntry.getShow().getShowName());
-        filteredHistory.put("showDate", historyEntry.getShow().getShowDate());
-        return filteredHistory;
-    }
 }

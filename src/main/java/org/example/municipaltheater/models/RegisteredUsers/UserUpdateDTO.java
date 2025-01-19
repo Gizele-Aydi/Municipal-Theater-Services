@@ -15,10 +15,6 @@ public class UserUpdateDTO {
     private String email;
     @NotBlank(message= "Password is a required field.")
     private String Password;
-    @Indexed(unique=true)
-    private String PhoneNum;
-    private List<Ticket> bookedTickets;
-    private List<Ticket> history;
 
     public String getUsername() {
         return username;
@@ -44,27 +40,4 @@ public class UserUpdateDTO {
         Password = password;
     }
 
-    public String getPhoneNum() {
-        return PhoneNum;
-    }
-
-    public void setPhoneNum(String phoneNum) {
-        PhoneNum = phoneNum;
-    }
-
-    public List<Ticket> getBookedTickets() {
-        return bookedTickets;
-    }
-
-    public void setBookedTickets(List<Ticket> bookedTickets) {
-        this.bookedTickets = bookedTickets;
-    }
-
-    public List<Ticket> getHistory() {
-        return history;
-    }
-
-    public void setHistory(List<Ticket> history) {
-        this.history = history;
-    }
 }

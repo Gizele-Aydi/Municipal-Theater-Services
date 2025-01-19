@@ -19,7 +19,7 @@ import java.util.*;
 
 @RestController
 @Validated
-@RequestMapping("/Events")
+@RequestMapping("/events")
 @CrossOrigin(origins = "*")
 public class EventsController {
 
@@ -32,7 +32,7 @@ public class EventsController {
         this.eventMapper = eventMapper;
     }
 
-    @GetMapping(value = "/All")
+    @GetMapping(value = "/all")
     public ResponseEntity<APIResponse<Event>> GetAllEvents() {
         List<Event> events = EventService.findAllEvents();
         if (events.isEmpty()) {
@@ -43,7 +43,7 @@ public class EventsController {
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @PostMapping(value = "/Add")
+    @PostMapping(value = "/add")
     public ResponseEntity<APIResponse<Event>> AddEvent(@RequestBody @Valid EventUpdateDTO eventUpdateDTO) {
         try {
             Event event = eventMapper.EventUpdateDTOToEvent(eventUpdateDTO);
@@ -59,19 +59,17 @@ public class EventsController {
     @GetMapping(value = "/{id}")
     public ResponseEntity<APIResponse<EventUpdateDTO>> GetEvent(@PathVariable String id) {
         try {
-            return EventService.findEventByID(id)
-                    .map(event -> {
+            return EventService.findEventByID(id).map(event -> {
                         EventUpdateDTO eventDTO = eventMapper.EventToEventUpdateDTO(event);
                         return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Event found.", eventDTO));
-                    })
-                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(new APIResponse<>(HttpStatus.NOT_FOUND.value(), "This event wasn't found, ID: " + id, null)));
+                    }).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(new APIResponse<>(HttpStatus.NOT_FOUND.value(), "This event wasn't found, ID: " + id, null)));
         } catch (ONotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new APIResponse<>(HttpStatus.NOT_FOUND.value(), e.getMessage(), null));
         }
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @PutMapping("/Update/{id}")
+    @PutMapping("/update/{id}")
     public ResponseEntity<APIResponse<Event>> UpdateEvent(@PathVariable String id, @RequestBody @Valid EventUpdateDTO eventUpdateDTO) {
         try {
             Event updatedEvent = EventService.updateEvent(id, eventMapper.EventUpdateDTOToEvent(eventUpdateDTO));
@@ -86,7 +84,7 @@ public class EventsController {
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @DeleteMapping(value = "/Delete/{id}")
+    @DeleteMapping(value = "/delete/{id}")
     public ResponseEntity<APIResponse<Void>> DeleteEvent(@PathVariable String id) {
         try {
             boolean isDeleted = EventService.deleteEventByID(id);
@@ -100,7 +98,7 @@ public class EventsController {
         }
     }
 
-    @PostMapping("/Search")
+    @PostMapping("/search")
     public ResponseEntity<APIResponse<SearchQuery>> searchEvents(@RequestBody Map<String, String> request) {
         String query = request.get("searchQuery");
         if (query == null || query.trim().isEmpty()) {

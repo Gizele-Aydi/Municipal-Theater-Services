@@ -19,7 +19,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Autowired
     public UserDetailsServiceImpl(RegisteredUsersRepository userRepo) {
-        UserRepo = userRepo;
+        this.UserRepo = userRepo;
     }
 
     @Override

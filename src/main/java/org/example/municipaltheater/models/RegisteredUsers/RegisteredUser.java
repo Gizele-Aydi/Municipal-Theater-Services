@@ -1,6 +1,5 @@
 package org.example.municipaltheater.models.RegisteredUsers;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Size;
 import org.example.municipaltheater.models.ShowModels.Ticket;
@@ -10,8 +9,6 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
@@ -20,9 +17,7 @@ import lombok.ToString;
 
 
 import javax.validation.constraints.NotBlank;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 
@@ -47,9 +42,6 @@ public class RegisteredUser {
     private List<Ticket> bookedTickets = new ArrayList<>();
     @DBRef(lazy = true)
     private List<Ticket> History = new ArrayList<>();
-    //private String VerifCode;
-    //private LocalDateTime VerifCodeExpiresAt;
-    //private boolean enabled;
 
     public RegisteredUser(){
     }
@@ -57,7 +49,6 @@ public class RegisteredUser {
     public String getUserID() {
         return userID;
     }
-
     public void setUserID(String userID) {
         this.userID = userID;
     }
@@ -65,7 +56,6 @@ public class RegisteredUser {
     public String getUsername() {
         return username;
     }
-
     public void setUsername(String username) {
         this.username = username;
     }
@@ -73,7 +63,6 @@ public class RegisteredUser {
     public String getEmail() {
         return email;
     }
-
     public void setEmail(String email) {
         this.email = email;
     }
@@ -81,7 +70,6 @@ public class RegisteredUser {
     public String getPassword() {
         return password;
     }
-
     public void setPassword(String password) {
         this.password = password;
     }
@@ -89,7 +77,6 @@ public class RegisteredUser {
     public Role getRole() {
         return role;
     }
-
     public void setRole(Role role) {
         this.role = role;
     }
@@ -97,7 +84,6 @@ public class RegisteredUser {
     public List<Ticket> getBookedTickets() {
         return bookedTickets;
     }
-
     public void setBookedTickets(List<Ticket> bookedTickets) {
         this.bookedTickets = bookedTickets;
     }
@@ -105,53 +91,8 @@ public class RegisteredUser {
     public List<Ticket> getHistory() {
         return History;
     }
-
     public void setHistory(List<Ticket> history) {
         History = history;
     }
 
-    /*public String getVerifCode() {
-        return VerifCode;
-    }
-
-    public void setVerifCode(String verifCode) {
-        VerifCode = verifCode;
-    }
-
-    public LocalDateTime getVerifCodeExpiresAt() {
-        return VerifCodeExpiresAt;
-    }
-
-    public void setVerifCodeExpiresAt(LocalDateTime verifCodeExpiresAt) {
-        VerifCodeExpiresAt = verifCodeExpiresAt;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
-    }*/
 }

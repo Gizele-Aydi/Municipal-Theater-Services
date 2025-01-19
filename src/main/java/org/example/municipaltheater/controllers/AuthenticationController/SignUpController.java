@@ -4,6 +4,7 @@ import org.example.municipaltheater.models.APIResponse;
 import org.example.municipaltheater.models.RegisteredUsers.RegisteredUser;
 import static org.example.municipaltheater.models.RegisteredUsers.Role.*;
 
+import org.example.municipaltheater.repositories.DifferentUsersRepositories.AdministratorsRepository;
 import org.example.municipaltheater.services.AuthenticationServices.EmailService;
 import org.example.municipaltheater.services.RegisteredUsersServices.UsersService;
 import org.example.municipaltheater.utils.DefinedExceptions.*;
@@ -25,16 +26,18 @@ public class SignUpController {
     private final RegisteredUsersRepository UserRepo;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final AdministratorsRepository AdminRepo;
 
     @Autowired
-    public SignUpController(UsersService userService, RegisteredUsersRepository userRepo, PasswordEncoder passwordEncoder, EmailService emailService) {
+    public SignUpController(UsersService userService, RegisteredUsersRepository userRepo, PasswordEncoder passwordEncoder, EmailService emailService, AdministratorsRepository adminRepo) {
         UserService = userService;
         UserRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+        AdminRepo = adminRepo;
     }
 
-    @PostMapping(value = "/SignUp", consumes = "application/json")
+    @PostMapping(value = "/signup", consumes = "application/json")
     public ResponseEntity<APIResponse<RegisteredUser>> createUser(@RequestBody @Valid RegisteredUser user) {
         try {
             String emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$";

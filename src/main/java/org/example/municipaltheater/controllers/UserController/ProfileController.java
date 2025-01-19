@@ -4,73 +4,88 @@ import org.example.municipaltheater.models.APIResponse;
 import org.example.municipaltheater.models.RegisteredUsers.*;
 import org.example.municipaltheater.models.ShowModels.Show;
 import org.example.municipaltheater.models.ShowModels.Ticket;
+import org.example.municipaltheater.repositories.DifferentUsersRepositories.RegisteredUsersRepository;
+import org.example.municipaltheater.security.services.UserDetailsImpl;
 import org.example.municipaltheater.services.EventsAndShowsServices.ShowsService;
 import org.example.municipaltheater.services.EventsAndShowsServices.TicketsService;
 import org.example.municipaltheater.services.RegisteredUsersServices.UsersService;
 import org.example.municipaltheater.utils.DefinedExceptions.*;
+
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/Account")
+@RequestMapping("/account")
 @CrossOrigin(origins = "*")
 public class ProfileController {
 
     private final UsersService UserService;
     private final TicketsService TicketService;
-    private final ShowsService ShowService;
+    private final RegisteredUsersRepository UserRepo;
 
     @Autowired
-    public ProfileController(UsersService userService, TicketsService TicketService, ShowsService showService) {
+    public ProfileController(UsersService userService, TicketsService TicketService, RegisteredUsersRepository userRepo) {
         UserService = userService;
         this.TicketService = TicketService;
-        ShowService = showService;
+        UserRepo = userRepo;
     }
 
     @PreAuthorize("isAuthenticated()")
-    @GetMapping("/View")
-    public ResponseEntity<APIResponse<RegisteredUser>> ViewProfile(@AuthenticationPrincipal String userId) {
-        RegisteredUser user = UserService.findUserProfileById(userId).orElseThrow(() -> new ONotFoundException("Your profile can't seem to be found."));
-        return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Your profile was successfully retrieved.", user));
+    @GetMapping("/view")
+    public ResponseEntity<APIResponse<Map<String, String>>> viewProfile(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        RegisteredUser user = UserService.findUserProfileById(userDetails.getUserID()).orElseThrow(() -> new ONotFoundException("Your profile can't seem to be found."));
+        Map<String, String> userProfile = new HashMap<>();
+        userProfile.put("userId", user.getUserID());
+        userProfile.put("username", user.getUsername());
+        userProfile.put("role", user.getRole().toString());
+        userProfile.put("email", user.getEmail());
+        return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(),"Your profile was successfully retrieved.", userProfile));
     }
 
     @PreAuthorize("isAuthenticated()")
-    @PutMapping("/Update")
-    public ResponseEntity<APIResponse<RegisteredUser>> UpdateProfile(@AuthenticationPrincipal String userId, @RequestBody RegisteredUser updatedUser) {
-        RegisteredUser updated = UserService.findUserProfileById(userId).orElseThrow(() -> new ONotFoundException("Your profile can't seem to be found."));
-        return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Your profile was successfully updated.", updated));
+    @PutMapping("/update")
+    public ResponseEntity<APIResponse<RegisteredUser>> updateProfile(@AuthenticationPrincipal UserDetailsImpl userDetails, @RequestBody RegisteredUser updatedUser) {
+        updatedUser.setRole(null);
+        updatedUser.setBookedTickets(null);
+        updatedUser.setHistory(null);
+        RegisteredUser updated = UserService.updateUser(userDetails.getUserID(), updatedUser);
+        return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Your profile was successfully updated.", updated
+        ));
     }
 
     @PreAuthorize("isAuthenticated()")
-    @DeleteMapping("/Delete")
-    public ResponseEntity<APIResponse<Void>> DeleteProfile(@AuthenticationPrincipal String userId) {
-        UserService.deleteUserByID(userId);
+    @DeleteMapping("/delete")
+    public ResponseEntity<APIResponse<Void>> deleteProfile(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        UserService.deleteUserByID(userDetails.getUserID());
         return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Your account was successfully deleted.", null));
     }
 
-    @PreAuthorize("hasRole('USER')")
-    @GetMapping("/Booked-Tickets")
-    public ResponseEntity<APIResponse<Map<String, Object>>> ViewBookedTickets(@AuthenticationPrincipal String userId) {
-        RegisteredUser user = UserService.findUserProfileById(userId).orElseThrow(() -> new ONotFoundException("Your profile can't seem to be found."));
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/booked-tickets")
+    public ResponseEntity<APIResponse<Map<String, Object>>> viewBookedTickets(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        RegisteredUser user = UserService.findUserProfileById(userDetails.getUserID()).orElseThrow(() -> new ONotFoundException("Your profile can't seem to be found."));
         Map<String, Object> responseData = UserService.findBookedTicketsForUser(user);
-        return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Currently booked tickets retrieved successfully.", responseData));
+        return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(),"Currently booked tickets retrieved successfully.", responseData));
     }
 
     @PreAuthorize("hasRole('ROLE_USER')")
-    @PostMapping("/Booked-Tickets/{ticket-id}/Cancel")
-    public ResponseEntity<APIResponse<Void>> CancelTicket(@PathVariable String ticketID) {
+    @PostMapping("/booked-tickets/{ticketID}/cancel")
+    public ResponseEntity<APIResponse<Void>> cancelTicket(@PathVariable("ticketID") String ticketID) {
         try {
             TicketService.deleteTicket(ticketID);
             return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Ticket cancelled and removed successfully.", null));
-        } catch (ONotFoundException e) {
+        } catch (ONotFoundException e)  {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new APIResponse<>(HttpStatus.NOT_FOUND.value(), e.getMessage(), null));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new APIResponse<>(HttpStatus.BAD_REQUEST.value(), e.getMessage(), null));
@@ -79,37 +94,42 @@ public class ProfileController {
         }
     }
 
+    @Transactional
     @PreAuthorize("hasRole('ROLE_USER')")
-    @PostMapping("/Booked-Tickets/Pay")
-    public ResponseEntity<APIResponse<String>> PayTickets(@PathVariable String id, @RequestParam String userID) {
+    @PostMapping("/booked-tickets/pay")
+    public ResponseEntity<APIResponse<String>> payTickets(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
-            RegisteredUser user = UserService.findUserProfileById(userID).orElseThrow(() -> new ONotFoundException("This user wasn't found."));
-            Show show = ShowService.findShowByID(id).orElseThrow(() -> new ONotFoundException("This show wasn't found."));
-            Ticket ticket = TicketService.getTicketByShowAndUser(show, user);
-            if (ticket == null) {
-                throw new ONotFoundException("Ticket not found.");
+            RegisteredUser user = UserService.findUserProfileById(userDetails.getUserID()).orElseThrow(() -> new ONotFoundException("User not found."));
+            List<Ticket> ticketsToProcess = new ArrayList<>(user.getBookedTickets());
+            for (Ticket ticket : ticketsToProcess) {
+                TicketService.payTicketAndMoveToHistory(ticket.getTicketID(), user, ticket.getShow());
             }
-            TicketService.payTicketAndMoveToHistory(ticket.getTicketID(), user, show);
-            return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "The payment request can be processed successfully.", "Ticket ID: " + ticket.getTicketID()));
+            user.getBookedTickets().clear();
+            user = UserRepo.save(user);
+            if (!user.getBookedTickets().isEmpty()) {
+                throw new RuntimeException("Failed to clear booked tickets");
+            }
+            return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "All tickets have been paid successfully and moved to history.", null));
         } catch (OptimisticLockingFailureException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(new APIResponse<>(HttpStatus.CONFLICT.value(), "The ticket has already been modified by another user.", null));
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(new APIResponse<>(HttpStatus.CONFLICT.value(), "One or more tickets have been modified by another user.", null));
         } catch (ONotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new APIResponse<>(HttpStatus.NOT_FOUND.value(), e.getMessage(), null));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new APIResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "An error occurred while processing the payment.", null));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new APIResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "An error occurred while processing the payment: " + e.getMessage(), null));
         }
     }
 
     @PreAuthorize("hasRole('ROLE_USER')")
-    @GetMapping("/History")
-    public ResponseEntity<APIResponse<List<Map<String, Object>>>> ViewHistory(@AuthenticationPrincipal String userID) {
-        RegisteredUser user = UserService.findUserProfileById(userID).orElseThrow(() -> new ONotFoundException("Your profile can't seem to be found."));
+    @GetMapping("/history")
+    public ResponseEntity<APIResponse<List<Map<String, Object>>>> viewHistory(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        RegisteredUser user = UserService.findUserProfileById(userDetails.getUserID()).orElseThrow(() -> new ONotFoundException("Your profile can't seem to be found."));
         List<Map<String, Object>> filteredHistory = UserService.findBookingHistoryByUser(user);
+        APIResponse<List<Map<String, Object>>> response;
         if (filteredHistory.isEmpty()) {
-            return ResponseEntity.ok(new APIResponse<List<Map<String, Object>>>(HttpStatus.OK.value(), "No history of previous bookings found.", filteredHistory));
+            response = new APIResponse<List<Map<String, Object>>>(HttpStatus.OK.value(),"No history of previous bookings found.",filteredHistory);
+        } else {
+            response = new APIResponse<List<Map<String, Object>>>(HttpStatus.OK.value(),"Previous ticket bookings retrieved successfully.",filteredHistory);
         }
-        return ResponseEntity.ok(new APIResponse<List<Map<String, Object>>>(HttpStatus.OK.value(), "Previous ticket bookings retrieved successfully.", filteredHistory));
+        return ResponseEntity.ok(response);
     }
-
-
 }

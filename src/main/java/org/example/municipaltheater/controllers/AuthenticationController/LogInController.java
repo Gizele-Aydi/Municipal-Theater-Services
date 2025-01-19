@@ -1,8 +1,10 @@
 package org.example.municipaltheater.controllers.AuthenticationController;
 
-import org.example.municipaltheater.repositories.DifferentUsersRepositories.RegisteredUsersRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import org.example.municipaltheater.models.Authentication.request.LogInRequest;
 import org.example.municipaltheater.models.Authentication.response.JWTResponse;
+import org.example.municipaltheater.models.Authentication.response.BlackListedToken;
+import org.example.municipaltheater.repositories.TokensRepositories.BlackListedTokensRepository;
 import org.example.municipaltheater.utils.JWTUtils;
 import org.example.municipaltheater.security.services.UserDetailsImpl;
 
@@ -26,17 +28,17 @@ import jakarta.validation.Valid;
 public class LogInController {
 
     private final AuthenticationManager AuthManager;
-    private final RegisteredUsersRepository UserRepo;
     private final JWTUtils JWTUtils;
+    private final BlackListedTokensRepository BTokenRepo;
 
     @Autowired
-    public LogInController(AuthenticationManager authManager, RegisteredUsersRepository userRepo, org.example.municipaltheater.utils.JWTUtils jwtUtils){
+    public LogInController(AuthenticationManager authManager, org.example.municipaltheater.utils.JWTUtils jwtUtils, BlackListedTokensRepository bTokenRepo){
         AuthManager = authManager;
-        UserRepo = userRepo;
         JWTUtils = jwtUtils;
+        BTokenRepo = bTokenRepo;
     }
 
-    @PostMapping("/LogIn")
+    @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LogInRequest loginRequest) {
         Authentication authentication = AuthManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -44,6 +46,27 @@ public class LogInController {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         String role = userDetails.getRole().name();
         return ResponseEntity.ok(new JWTResponse(jwt, userDetails.getUserID(), userDetails.getUsername(), userDetails.getEmail(), role));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+        String jwt = extractJwtFromRequest(request);
+        
+        if (jwt != null && JWTUtils.validateJwtToken(jwt)) {
+            BlackListedToken blacklistedToken = new BlackListedToken(jwt, JWTUtils.getExpirationFromToken(jwt));
+            BTokenRepo.save(blacklistedToken);
+            SecurityContextHolder.clearContext();
+            return ResponseEntity.ok().body("Logged out successfully");
+        }
+        return ResponseEntity.badRequest().body("Invalid token");
+    }
+
+    private String extractJwtFromRequest(HttpServletRequest request) {
+        String headerAuth = request.getHeader("Authorization");
+        if (headerAuth != null && headerAuth.startsWith("Bearer ")) {
+            return headerAuth.substring(7);
+        }
+        return null;
     }
 
 }

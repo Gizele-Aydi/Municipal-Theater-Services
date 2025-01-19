@@ -20,20 +20,17 @@ public class Ticket {
     @Id
     @Generated
     private String ticketID;
-    @NotBlank(message = "The ticket must be associated with a show.")
-    @DBRef
+    @DBRef @JsonIgnore @NotBlank(message = "The ticket must be associated with a show.")
     private Show show;
     @NotBlank(message = "The ticket seat type shouldn't be empty.")
     private SeatType seat;
     @NotNull(message = "The ticket price shouldn't be empty.")
     private double price;
-    @DBRef
-    @JsonIgnore
+    @DBRef @JsonIgnore
     private RegisteredUser user;
     @NotNull(message = "The ticket must belong to a user.")
     private boolean isHistory;
     private boolean isPaid;
-
 
     public String getTicketID() {
         return ticketID;
@@ -82,5 +79,9 @@ public class Ticket {
     }
     public void setPaid(boolean paid) {
         isPaid = paid;
+    }
+
+    public String getShowName() {
+        return show != null ? show.getShowName() : "Deleted Show";
     }
 }

@@ -10,14 +10,14 @@ import org.example.municipaltheater.repositories.ShowsAndEventsRepositories.Show
 import org.example.municipaltheater.repositories.TicketsRepository;
 import org.example.municipaltheater.services.RegisteredUsersServices.UsersService;
 import org.example.municipaltheater.utils.DefinedExceptions.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 @Service
 public class TicketsService {
@@ -45,7 +45,6 @@ public class TicketsService {
         ticket.setPrice(seatPrice);
         ticket.setHistory(false);
         Ticket savedTicket = TicketRepo.save(ticket);
-        show.getTickets().add(savedTicket);
         ShowRepo.save(show);
         return savedTicket;
     }
@@ -76,8 +75,10 @@ public class TicketsService {
             throw new IllegalStateException("Ticket has already been processed.");
         }
         ticket.setHistory(true);
-        ticket.getUser().getHistory().add(ticket);
-        UserRepo.save(ticket.getUser());
+        user.getHistory().add(ticket);
+        user.getBookedTickets().remove(ticket);
+        ticket.setUser(user);
+        UserRepo.save(user);
         TicketRepo.save(ticket);
     }
 

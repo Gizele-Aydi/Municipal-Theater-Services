@@ -1,7 +1,9 @@
 package org.example.municipaltheater.utils;
 
+import org.example.municipaltheater.repositories.TokensRepositories.BlackListedTokensRepository;
 import org.example.municipaltheater.security.services.UserDetailsImpl;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.security.core.Authentication;
@@ -28,6 +30,9 @@ public class JWTUtils {
     @Value("${security.jwt.expiration-time}")
     private int jwtExpirationMs;
 
+    @Autowired
+    private BlackListedTokensRepository BTokenRepo;
+
 
     public String generateJwtToken(Authentication authentication) {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
@@ -50,6 +55,10 @@ public class JWTUtils {
 
     public boolean validateJwtToken(String authToken) {
         try {
+            if (BTokenRepo.existsByToken(authToken)) {
+                logger.error("Token is blacklisted");
+                return false;
+            }
             Jwts.parser().setSigningKey(key()).parseClaimsJws(authToken);
             return true;
         } catch (MalformedJwtException e) {
@@ -67,5 +76,13 @@ public class JWTUtils {
         }
 
         return false;
+    }
+
+    public Date getExpirationFromToken(String token) {
+        return Jwts.parser()
+                .setSigningKey(key())
+                .parseClaimsJws(token)
+                .getBody()
+                .getExpiration();
     }
 }

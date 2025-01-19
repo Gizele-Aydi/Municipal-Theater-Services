@@ -14,5 +14,7 @@ public interface TicketsRepository extends MongoRepository<Ticket, String> {
     Optional<Ticket> findByShowAndUser(Show show, RegisteredUser user);
     @Query("{ 'show.$id': ?0 }")
     List<Ticket> findByShowId(String showId);
+    List<Ticket> findByShow(Show show);
+    void deleteByShow(Show show);
 }
 

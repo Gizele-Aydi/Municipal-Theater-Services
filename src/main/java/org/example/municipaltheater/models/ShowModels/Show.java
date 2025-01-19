@@ -1,5 +1,6 @@
 package org.example.municipaltheater.models.ShowModels;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
@@ -12,7 +13,6 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -38,8 +38,6 @@ public class Show {
     private String showPhotoURL;
     @JsonProperty("seats")
     private List<Seat> seats;
-    @DBRef(lazy = true)
-    private List<Ticket> tickets = new ArrayList<>();
 
     public String getShowID() {
         return showID;
@@ -88,13 +86,6 @@ public class Show {
     }
     public void setSeats(List<Seat> seats) {
         this.seats = seats;
-    }
-
-    public List<Ticket> getTickets() {
-        return tickets;
-    }
-    public void setTickets(List<Ticket> tickets) {
-        this.tickets = tickets;
     }
 
     public boolean reduceAvailableSeats(SeatType seatType) {
