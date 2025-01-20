@@ -1,18 +1,14 @@
 package org.example.municipaltheater.security;
 
-import jakarta.servlet.http.HttpServletResponse;
 import org.example.municipaltheater.security.jwt.AuthEntryPointJWT;
 import org.example.municipaltheater.security.jwt.AuthTokenFilter;
-import org.example.municipaltheater.security.services.UserDetailsImpl;
 import org.example.municipaltheater.services.AuthenticationServices.UserDetailsServiceImpl;
-import org.example.municipaltheater.services.RegisteredUsersServices.UsersService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -25,7 +21,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
@@ -67,7 +62,6 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity.securityMatcher("/**")
                 .csrf(AbstractHttpConfigurer::disable)
-                .logout(AbstractHttpConfigurer::disable)
                 .exceptionHandling(exception ->
                         exception.authenticationEntryPoint(UnAuthHandler))
                 .sessionManagement(session ->
@@ -75,15 +69,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(registry -> {
                     registry.requestMatchers("/signup", "/login", "/events/all", "/events/{id}", "/events/search", "/shows/all", "/shows/{id}", "/shows/search").permitAll();
                     registry.requestMatchers("/favicon.ico").permitAll();
-                    registry.requestMatchers("/logout","/profile/**", "/shows/{id}/book", "/shows/{id}/pay","/shows/add", "/shows/update/{id}","/shows/delete/{id}","/events/update/{id}","/events/delete/{id}","/users/**").authenticated();
+                    registry.requestMatchers("/logout","/account/**", "/shows/{id}/book", "/shows/{id}/pay","/shows/add", "/shows/update/{id}","/shows/delete/{id}","/events/update/{id}","/events/delete/{id}","/users/**").authenticated();
                     registry.anyRequest().authenticated();
                 })
-                .logout(logout -> logout
-                        .logoutUrl("/logout") // Customize logout endpoint
-                        .logoutSuccessHandler((request, response, authentication) -> {
-                            response.setStatus(HttpServletResponse.SC_OK);
-                            response.getWriter().write("Logged out successfully");
-                        }))
                 .authenticationProvider(authenticationProvider());
                 httpSecurity.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 

@@ -1,6 +1,5 @@
 package org.example.municipaltheater.security.jwt;
 
-import org.example.municipaltheater.repositories.TokensRepositories.BlackListedTokensRepository;
 import org.example.municipaltheater.services.AuthenticationServices.UserDetailsServiceImpl;
 import org.example.municipaltheater.utils.JWTUtils;
 
@@ -29,9 +28,6 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
 
-    @Autowired
-    private BlackListedTokensRepository BTokenRepo;
-
     private static final Logger logger = LoggerFactory.getLogger(AuthTokenFilter.class);
 
     @Override
@@ -39,9 +35,6 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         try {
             String jwt = parseJwt(request);
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-                if (BTokenRepo.existsByToken(jwt)) {
-                    throw new ServletException("Token is invalidated");
-                }
                 String username = jwtUtils.getUserNameFromJwtToken(jwt);
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
