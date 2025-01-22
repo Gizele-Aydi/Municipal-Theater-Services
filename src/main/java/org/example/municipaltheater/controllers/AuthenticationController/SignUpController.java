@@ -41,6 +41,9 @@ public class SignUpController {
     public ResponseEntity<APIResponse<RegisteredUser>> createUser(@RequestBody @Valid RegisteredUser user) {
         try {
             String emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$";
+            if (user.getPassword().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new APIResponse<>(HttpStatus.BAD_REQUEST.value(), "This password is empty.", null));
+            }
             if (UserRepo.findByUsername(user.getUsername()).isPresent()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new APIResponse<>(HttpStatus.BAD_REQUEST.value(), "This username is already taken.", null));
             }
