@@ -2,11 +2,9 @@ package org.example.municipaltheater.controllers.UserController;
 
 import org.example.municipaltheater.models.APIResponse;
 import org.example.municipaltheater.models.RegisteredUsers.*;
-import org.example.municipaltheater.models.ShowModels.Show;
 import org.example.municipaltheater.models.ShowModels.Ticket;
 import org.example.municipaltheater.repositories.DifferentUsersRepositories.RegisteredUsersRepository;
 import org.example.municipaltheater.security.services.UserDetailsImpl;
-import org.example.municipaltheater.services.EventsAndShowsServices.ShowsService;
 import org.example.municipaltheater.services.EventsAndShowsServices.TicketsService;
 import org.example.municipaltheater.services.RegisteredUsersServices.UsersService;
 import org.example.municipaltheater.utils.DefinedExceptions.*;
@@ -41,7 +39,7 @@ public class ProfileController {
         UserRepo = userRepo;
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_USER')")
     @GetMapping("/view")
     public ResponseEntity<APIResponse<Map<String, String>>> viewProfile(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         RegisteredUser user = UserService.findUserProfileById(userDetails.getUserID()).orElseThrow(() -> new ONotFoundException("Your profile can't seem to be found."));
@@ -53,7 +51,7 @@ public class ProfileController {
         return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(),"Your profile was successfully retrieved.", userProfile));
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_USER')")
     @PutMapping("/update")
     public ResponseEntity<APIResponse<RegisteredUser>> updateProfile(@AuthenticationPrincipal UserDetailsImpl userDetails, @RequestBody RegisteredUser updatedUser) {
         updatedUser.setRole(null);
@@ -64,14 +62,14 @@ public class ProfileController {
         ));
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_USER')")
     @DeleteMapping("/delete")
     public ResponseEntity<APIResponse<Void>> deleteProfile(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         UserService.deleteUserByID(userDetails.getUserID());
         return ResponseEntity.ok(new APIResponse<>(HttpStatus.OK.value(), "Your account was successfully deleted.", null));
     }
 
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ROLE_USER')")
     @GetMapping("/booked-tickets")
     public ResponseEntity<APIResponse<Map<String, Object>>> viewBookedTickets(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         RegisteredUser user = UserService.findUserProfileById(userDetails.getUserID()).orElseThrow(() -> new ONotFoundException("Your profile can't seem to be found."));
